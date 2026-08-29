@@ -457,11 +457,11 @@ The scoreboard (`get_scoreboard`) tallies, per agent: proposals made, how many w
 
 **Direct dispatch with consensus, from inside the Claude Code pane:**
 
-You ask Claude to fix a bug in the zip pipeline. Claude does the work, then calls `submit_proposal(task_id, result)` instead of just telling you it's done. That automatically dispatches Copilot headlessly to review the change against the task description. Copilot calls `get_task`, reads the proposal, and calls `submit_review(task_id, "revise", "the fix handles the timeout case but not the retry-exhausted case")`. The task bounces back to Claude with that note attached; Claude addresses it and proposes again; Copilot approves; the task closes `done`, and Claude's `approved_first_try` count does *not* go up, since it needed a round of revision — an honest record of what actually happened.
+You ask Claude to fix a bug in the upload pipeline. Claude does the work, then calls `submit_proposal(task_id, result)` instead of just telling you it's done. That automatically dispatches Copilot headlessly to review the change against the task description. Copilot calls `get_task`, reads the proposal, and calls `submit_review(task_id, "revise", "the fix handles the timeout case but not the retry-exhausted case")`. The task bounces back to Claude with that note attached; Claude addresses it and proposes again; Copilot approves; the task closes `done`, and Claude's `approved_first_try` count does *not* go up, since it needed a round of revision — an honest record of what actually happened.
 
 **Shared chat with escalation to you, from Pane 3:**
 
-You type `@both check if the eFolder status refactor breaks the zip pipeline`. The coordinator opens a task for each agent, dispatches both, and each one's result routes through `submitProposal` — meaning Claude's finding gets reviewed by Copilot and vice versa. Say Copilot's proposal claims no issue, but Claude's review flags a real race condition and casts `verdict: "reject"` because it's not a "needs polish" issue, it's a wrong conclusion. That skips revision and escalates straight to you: `coordinator: claude and copilot disagree on "..." -- claude rejected it outright: ... Needs your call.` You see it live in the chat pane and make the call.
+You type `@both check whether the auth refactor breaks the upload pipeline`. The coordinator opens a task for each agent, dispatches both, and each one's result routes through `submitProposal` — meaning Claude's finding gets reviewed by Copilot and vice versa. Say Copilot's proposal claims no issue, but Claude's review flags a real race condition and casts `verdict: "reject"` because it's not a "needs polish" issue, it's a wrong conclusion. That skips revision and escalates straight to you: `coordinator: claude and copilot disagree on "..." -- claude rejected it outright: ... Needs your call.` You see it live in the chat pane and make the call.
 
 ---
 
@@ -485,19 +485,19 @@ Everything above is currently spec'd as terminal panes plus a Node MCP server. T
 
 ### 9.1 Repo
 
-- **Host:** `github.com/ray-hughes` (personal account), private repo.
-- **Working name:** `plexus` — a network of interconnected nerves, which is exactly what this is. Trivial to rename before you push the first commit if you want something else.
-- **SSH:** the laptop has separate keys for work and personal GitHub — use the personal host alias already configured in `~/.ssh/config`, not bare `github.com` (which may resolve to whichever key your global config defaults to). Concretely:
-  - `git remote add origin git@<your-personal-host-alias>:ray-hughes/plexus.git`, using whatever alias you already set up for the personal key — check `~/.ssh/config` for the `Host` entry pointing at the personal identity file.
-  - Set the git identity inside this repo specifically rather than relying on a global default, in case that default is your work email: `git config user.email "<personal email>"` (run from inside the repo, so it's local not global).
-  - If you use `gh` for repo creation, confirm `gh auth status` shows the personal account active first (`gh auth switch` if it's currently on work), then `gh repo create ray-hughes/plexus --private --source=. --remote=origin`.
+- **Working name:** `plexus` — a network of interconnected nerves, which is exactly what
+  this is.
+
+> The original §9.1 also carried machine-specific setup notes (which GitHub account and SSH
+> key to use). Those were personal to the author's laptop and are omitted here; see
+> [packaging.md](packaging.md) for how the repo actually builds and releases.
 
 ### 9.2 Stack
 
 | Layer | Choice | Why |
 |---|---|---|
-| Shell | Electron | Mature PTY/native-module and packaging story for both platforms in one build. You've already built [[specter-ide]] on this exact stack, so there's real prior experience to draw on. [[hyperonic]] is the more interesting long-term bet, but it's still in development and this app leans hard on things Electron already has solved (node-pty, code signing, auto-update) — worth revisiting once Hyperonic has a packaging and PTY story of its own. |
-| UI | React + TypeScript | Same as Specter IDE. |
+| Shell | Electron | Mature PTY/native-module and packaging story for both platforms in one build. This app leans hard on things Electron already has solved: node-pty, code signing, auto-update. |
+| UI | React + TypeScript | Familiar, and it keeps the renderer boring. |
 | Terminal panes | `node-pty` + `xterm.js` | Spawns `claude` and `copilot` as real PTY processes — full ANSI/interactive fidelity, not a re-implementation of their UI. This is the same combination VS Code's integrated terminal uses. |
 | Bridge logic | Ported directly from `harness-bridge/lib.js` (§4.2) | One implementation of tasks/chat/consensus/scoreboard, exposed two ways: as an MCP server over stdio (for `claude` and `copilot`'s own tool calls, unchanged from §4.3) and over Electron IPC (for the app's own UI panels). |
 | State | Flat files under `.harness/` in the opened project folder, unchanged from §4.2 | Git-diffable, no new dependency, already spec'd. Revisit with `better-sqlite3` only if concurrent-write contention becomes a real problem in practice. |

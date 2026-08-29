@@ -10,7 +10,17 @@ Claude Code and GitHub Copilot CLI, running side by side in one app — each wit
 context window, wired into a shared task board and a consensus loop where neither can
 call work finished without the other signing off.
 
-<img src=".github/badges/tests.svg" alt="tests"> <img src=".github/badges/coverage.svg" alt="coverage"> [![CI](https://github.com/Ray-Hughes/plexus/actions/workflows/ci.yml/badge.svg)](https://github.com/Ray-Hughes/plexus/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](#install) [![Electron](https://img.shields.io/badge/electron-33-47848F.svg)](https://electronjs.org)
+[![CI](https://github.com/Ray-Hughes/plexus/actions/workflows/ci.yml/badge.svg)](https://github.com/Ray-Hughes/plexus/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FRay-Hughes%2Fplexus%2Fmain%2F.github%2Fbadges%2Ftests.json)](https://github.com/Ray-Hughes/plexus/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FRay-Hughes%2Fplexus%2Fmain%2F.github%2Fbadges%2Fcoverage.json)](https://github.com/Ray-Hughes/plexus/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Ray-Hughes/plexus?color=blue)](https://github.com/Ray-Hughes/plexus/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Ray-Hughes/plexus/total?color=blueviolet)](https://github.com/Ray-Hughes/plexus/releases)
+[![License](https://img.shields.io/github/license/Ray-Hughes/plexus?color=lightgrey)](LICENSE)
+
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-informational)](#install)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Electron](https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white)](https://electronjs.org)
+[![MCP](https://img.shields.io/badge/MCP-harness--bridge-D97757)](docs/mcp-tools.md)
 
 <img src="docs/images/chat.png" alt="Plexus with Claude Code and Copilot CLI running side by side" width="900">
 

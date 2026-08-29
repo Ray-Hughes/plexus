@@ -62,7 +62,7 @@ plexus coordinator · /Users/you/your-repo
 Address a message with @claude, @copilot, or @both. Ctrl-C to exit.
 
 05:09:53 copilot  approved "State the harness revision cap" (task-c6b7c14b) — Verified…
-> @both does the eFolder status refactor break the zip pipeline?
+> @both does the auth refactor break the upload pipeline?
 ```
 
 Anything without a mention gets a question back rather than a guess.

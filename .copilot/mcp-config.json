@@ -2,9 +2,14 @@
   "mcpServers": {
     "harness-bridge": {
       "type": "local",
-      "command": "node",
-      "args": ["dist/cli/harness-bridge.mjs", "--agent=copilot"],
-      "tools": ["*"]
+      "command": "/Users/raymondhughes/va/plexus/release/mac/Plexus.app/Contents/MacOS/Plexus",
+      "args": [
+        "/Users/raymondhughes/va/plexus/release/mac/Plexus.app/Contents/Resources/cli/harness-bridge.mjs",
+        "--agent=copilot"
+      ],
+      "env": {
+        "ELECTRON_RUN_AS_NODE": "1"
+      }
     }
   }
 }

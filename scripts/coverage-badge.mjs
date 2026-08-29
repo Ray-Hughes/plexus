@@ -50,10 +50,12 @@ const pct = Math.round(lines * 10) / 10
 const color = pct >= 90 ? 'brightgreen' : pct >= 80 ? 'green' : pct >= 70 ? 'yellow' : 'orange'
 
 mkdirSync('.github/badges', { recursive: true })
-writeFileSync(
-  '.github/badges/coverage.json',
-  `${JSON.stringify({ schemaVersion: 1, label: 'coverage', message: `${pct}%`, color }, null, 2)}\n`
-)
+
+/** shields.io endpoint format — see https://shields.io/badges/endpoint-badge */
+const endpoint = (label, message, color) =>
+  `${JSON.stringify({ schemaVersion: 1, label, message, color }, null, 2)}\n`
+
+writeFileSync('.github/badges/coverage.json', endpoint('coverage', `${pct}%`, color))
 
 console.log(`lines ${lines}%  branches ${branches}%  functions ${functions}%`)
 console.log(`wrote .github/badges/coverage.json → ${pct}% (${color})`)
@@ -92,11 +94,17 @@ function badge(label, message, fill) {
 `
 }
 
+// The SVGs are kept as a fallback: they render from a repo-relative path even
+// when shields.io can't reach the endpoint JSON (a private repo, or an outage).
 writeFileSync('.github/badges/coverage.svg', badge('coverage', `${pct}%`, COLORS[color]))
 // TAP indents subtests, so counting `^ok` only finds top-level suites. The
 // plan summary is the number that matches what the spec reporter prints.
 const passing = Number.parseInt(/^# pass (\d+)$/m.exec(output)?.[1] ?? '0', 10)
 const failing = Number.parseInt(/^# fail (\d+)$/m.exec(output)?.[1] ?? '0', 10)
+writeFileSync(
+  '.github/badges/tests.json',
+  endpoint('tests', failing ? `${failing} failing` : `${passing} passing`, failing ? 'red' : 'brightgreen')
+)
 writeFileSync(
   '.github/badges/tests.svg',
   badge(

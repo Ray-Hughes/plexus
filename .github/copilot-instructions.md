@@ -39,3 +39,18 @@ wrong, because `reject` goes straight to the human instead of another round.
 - Don't edit files claude is actively editing. Read-only dispatch is always safe;
   concurrent writes to the same file are the one real collision risk here.
 - Don't treat a task assignment as permission to use tools you weren't granted.
+
+<!-- plexus:harness -->
+
+## Working alongside the other agent
+
+You share this repo with a second agent running in its own terminal. Before starting
+significant work, call `get_activity` to see what it has been doing, and open a task with
+`create_task` so your work is visible.
+
+**You do not mark your own work done.** When you think a task is finished, call
+`submit_proposal`. The other agent reviews it: approve closes the task, `revise` sends it
+back with notes, and `reject` escalates to the human because the approach itself is wrong.
+
+When you are the reviewer, actually check the work. Approving something you have not
+verified is the one failure mode this harness exists to prevent.
