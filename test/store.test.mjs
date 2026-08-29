@@ -157,3 +157,29 @@ describe('dispatch commands', () => {
     }
   })
 })
+
+describe('activity + chat parsing edge cases', () => {
+  const { harness, cleanup } = tempHarness()
+  after(cleanup)
+
+  it('keeps a colon in the message body intact', () => {
+    harness.postChat('claude', 'note: the retry path is fine')
+    const last = harness.getChat(1)[0]
+    assert.equal(last.speaker, 'claude')
+    assert.equal(last.text, 'note: the retry path is fine')
+  })
+
+  it('survives a message containing bracket characters', () => {
+    harness.postChat('copilot', '[warn] check src/[id]/page.tsx')
+    assert.equal(harness.getChat(1)[0].text, '[warn] check src/[id]/page.tsx')
+  })
+
+  it('returns an empty list rather than throwing on a fresh project', () => {
+    const { harness: h, cleanup: c } = tempHarness()
+    assert.deepEqual(h.getChat(), [])
+    assert.deepEqual(h.getActivity(), [])
+    assert.deepEqual(h.listTasks(), [])
+    assert.deepEqual(h.listJobs(), [])
+    c()
+  })
+})

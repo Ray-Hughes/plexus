@@ -694,3 +694,19 @@ button {
   flex: none;
   border-color: #3d7ac9;
 }
+
+.msg-more {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 3px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.msg-more:hover {
+  color: var(--text);
+  border-color: #33405a;
+}

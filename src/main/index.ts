@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { existsSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { CHANNELS, type ProjectState, type Snapshot, type StartResult } from '../shared/ipc'
 import type { AgentId, Assignee, Priority, TaskStatus, Verdict } from '../shared/types'
@@ -124,7 +124,13 @@ function createWindow(): void {
     }
   })
 
-  window.on('ready-to-show', () => window?.show())
+  window.on('ready-to-show', () => {
+    window?.show()
+    // Regenerating the README screenshots: capture the renderer itself, so no
+    // system window or dialog can land on top of the shot.
+    //   PLEXUS_CAPTURE=/path/shot.png npm run dev
+    if (process.env.PLEXUS_CAPTURE) void captureTo(process.env.PLEXUS_CAPTURE)
+  })
   window.on('closed', () => {
     window = null
   })
@@ -140,6 +146,13 @@ function createWindow(): void {
   } else {
     void window.loadFile(join(__dirname, '../renderer/index.html'))
   }
+}
+
+async function captureTo(path: string): Promise<void> {
+  await new Promise((r) => setTimeout(r, Number(process.env.PLEXUS_CAPTURE_DELAY ?? 4000)))
+  const image = await window!.webContents.capturePage()
+  writeFileSync(path, image.toPNG())
+  app.exit(0)
 }
 
 // --- IPC ---

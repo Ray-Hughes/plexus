@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 import { readJsonOr, writeAtomic, writeJson } from './bridge/store'
 
 /**
@@ -42,16 +42,20 @@ export function bridgeEntryPoint(): string {
 const claudeConfigPath = (root: string): string => join(root, '.mcp.json')
 const copilotConfigPath = (root: string): string => join(root, '.copilot', 'mcp-config.json')
 
-function pointsAtBridge(path: string, entry: string): boolean {
-  return readJsonOr<McpConfig>(path, {}).mcpServers?.[SERVER_KEY]?.args?.includes(entry) ?? false
+function pointsAtBridge(configPath: string, root: string, entry: string): boolean {
+  const args = readJsonOr<McpConfig>(configPath, {}).mcpServers?.[SERVER_KEY]?.args
+  if (!args) return false
+  // A checked-in config may use a path relative to the repo (that is what this
+  // repo's own .mcp.json does), so compare resolved paths rather than strings.
+  return args.some((arg) => (isAbsolute(arg) ? arg : resolve(root, arg)) === resolve(entry))
 }
 
 export function wiringStatus(root: string): WiringStatus {
   const entry = bridgeEntryPoint()
   const claudeMd = join(root, 'CLAUDE.md')
   return {
-    claude: pointsAtBridge(claudeConfigPath(root), entry),
-    copilot: pointsAtBridge(copilotConfigPath(root), entry),
+    claude: pointsAtBridge(claudeConfigPath(root), root, entry),
+    copilot: pointsAtBridge(copilotConfigPath(root), root, entry),
     instructions: existsSync(claudeMd) && readFileSync(claudeMd, 'utf8').includes('submit_proposal')
   }
 }

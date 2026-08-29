@@ -77,7 +77,11 @@ function TaskCard({
             {task.revision_rounds} revision round{task.revision_rounds === 1 ? '' : 's'}
           </span>
         )}
-        {task.notes.length > 0 && <span>{task.notes.length} notes</span>}
+        {task.notes.length > 0 && (
+          <span>
+            {task.notes.length} note{task.notes.length === 1 ? '' : 's'}
+          </span>
+        )}
       </div>
 
       {open && (

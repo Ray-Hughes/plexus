@@ -8,9 +8,39 @@ import type { ChatMessage } from '../../shared/types'
 
 const KNOWN = new Set(['claude', 'copilot', 'human', 'coordinator'])
 
+/**
+ * A review can run to several hundred words, and one of them unclamped pushes
+ * every other message out of the room. Long messages collapse to a readable
+ * height with a toggle.
+ */
+const CLAMP_CHARS = 420
+
 interface Props {
   messages: ChatMessage[]
   disabled: boolean
+}
+
+function Message({ message }: { message: ChatMessage }): JSX.Element {
+  const [expanded, setExpanded] = useState(false)
+  const long = message.text.length > CLAMP_CHARS
+  const shown = long && !expanded ? `${message.text.slice(0, CLAMP_CHARS).trimEnd()}…` : message.text
+
+  return (
+    <div className="msg">
+      <div className="msg-head">
+        <span className={`speaker ${KNOWN.has(message.speaker) ? message.speaker : 'coordinator'}`}>
+          {message.speaker}
+        </span>
+        <span className="msg-time">{message.at ? message.at.slice(11, 19) : ''}</span>
+      </div>
+      <div className="msg-text">{shown}</div>
+      {long && (
+        <button className="msg-more" onClick={() => setExpanded(!expanded)}>
+          {expanded ? 'Show less' : `Show all ${message.text.length.toLocaleString()} characters`}
+        </button>
+      )}
+    </div>
+  )
 }
 
 export default function ChatPane({ messages, disabled }: Props): JSX.Element {
@@ -44,15 +74,7 @@ export default function ChatPane({ messages, disabled }: Props): JSX.Element {
           </div>
         )}
         {messages.map((m, i) => (
-          <div className="msg" key={`${m.at}-${i}`}>
-            <div className="msg-head">
-              <span className={`speaker ${KNOWN.has(m.speaker) ? m.speaker : 'coordinator'}`}>
-                {m.speaker}
-              </span>
-              <span className="msg-time">{m.at ? m.at.slice(11, 19) : ''}</span>
-            </div>
-            <div className="msg-text">{m.text}</div>
-          </div>
+          <Message key={`${m.at}-${i}`} message={m} />
         ))}
         <div ref={bottom} />
       </div>
