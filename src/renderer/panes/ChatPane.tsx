@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ChatMessage } from '../../shared/types'
+import type { ChatDefault, ChatMessage } from '../../shared/types'
 
 /**
  * Tier 5 with a real UI instead of a scrollback buffer. The routing behind it
@@ -35,9 +35,16 @@ const CLAMP_CHARS = 420
 
 const TASK_ID = /(task-[a-z0-9]{8})/g
 
+function placeholderFor(target: ChatDefault): string {
+  if (target === 'ask') return '@claude, @copilot, or @both…'
+  const who = target === 'both' ? 'both agents' : target
+  return `Message ${who}…  (@claude / @copilot to pick one)`
+}
+
 interface Props {
   messages: ChatMessage[]
   disabled: boolean
+  chatDefault: ChatDefault
   onOpenTask: (id: string) => void
 }
 
@@ -70,7 +77,12 @@ function Message({
   )
 }
 
-export default function ChatPane({ messages, disabled, onOpenTask }: Props): JSX.Element {
+export default function ChatPane({
+  messages,
+  disabled,
+  chatDefault,
+  onOpenTask
+}: Props): JSX.Element {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const bottom = useRef<HTMLDivElement>(null)
@@ -96,8 +108,18 @@ export default function ChatPane({ messages, disabled, onOpenTask }: Props): JSX
       <div className="chat-log">
         {messages.length === 0 && (
           <div className="empty">
-            Nothing said yet. Address a message with <code>@claude</code>, <code>@copilot</code>, or{' '}
-            <code>@both</code>.
+            {chatDefault === 'ask' ? (
+              <>
+                Nothing said yet. Address a message with <code>@claude</code>,{' '}
+                <code>@copilot</code>, or <code>@both</code>.
+              </>
+            ) : (
+              <>
+                Nothing said yet. Just type — messages go to{' '}
+                <code>{chatDefault === 'both' ? 'both agents' : chatDefault}</code> unless you
+                address one with <code>@claude</code> or <code>@copilot</code>.
+              </>
+            )}
           </div>
         )}
         {messages.map((m, i) => (
@@ -112,7 +134,7 @@ export default function ChatPane({ messages, disabled, onOpenTask }: Props): JSX
           rows={3}
           value={draft}
           disabled={disabled || sending}
-          placeholder={disabled ? 'Open a project first' : '@claude, @copilot, or @both…'}
+          placeholder={disabled ? 'Open a project first' : placeholderFor(chatDefault)}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -126,8 +148,9 @@ export default function ChatPane({ messages, disabled, onOpenTask }: Props): JSX
             'Dispatching…'
           ) : (
             <>
-              <code>Enter</code> to send · <code>Shift+Enter</code> for a newline · every reply is
-              routed to the other agent for review before it counts as done
+              <code>Enter</code> to send · goes to{' '}
+              <code>{chatDefault === 'ask' ? 'whoever you @mention' : chatDefault}</code> · every
+              reply is reviewed by the other agent before it counts as done
             </>
           )}
         </div>

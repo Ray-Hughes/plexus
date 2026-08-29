@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { after, describe, it } from 'node:test'
-import { handleHumanMessage, parseRoute, ROUTING_HELP } from '../dist/lib/plexus.mjs'
+import { Harness, handleHumanMessage, parseRoute, ROUTING_HELP } from '../dist/lib/plexus.mjs'
 import { tempHarness } from './helpers.mjs'
 
 describe('chat routing (Tier 5)', () => {
@@ -26,21 +26,88 @@ describe('chat routing (Tier 5)', () => {
     })
   })
 
-  it('refuses to guess when there is no mention', () => {
-    assert.equal(parseRoute('someone please look at this'), null)
-    assert.equal(parseRoute('@claude'), null, 'a mention with no body is not a request')
-    assert.equal(parseRoute('email me @claudette'), null)
+  it('falls back to both when a message has no mention', () => {
+    assert.deepEqual(parseRoute('is the build green?'), {
+      targets: ['claude', 'copilot'],
+      body: 'is the build green?'
+    })
   })
 
-  it('bounces an unaddressed message back instead of picking an agent', async () => {
+  it('honours whatever default the project is set to', () => {
+    assert.deepEqual(parseRoute('is the build green?', 'claude'), {
+      targets: ['claude'],
+      body: 'is the build green?'
+    })
+    assert.deepEqual(parseRoute('is the build green?', 'copilot'), {
+      targets: ['copilot'],
+      body: 'is the build green?'
+    })
+    assert.equal(parseRoute('is the build green?', 'ask'), null)
+  })
+
+  it('lets an explicit mention beat the default', () => {
+    assert.deepEqual(parseRoute('@copilot look at this', 'claude'), {
+      targets: ['copilot'],
+      body: 'look at this'
+    })
+    assert.deepEqual(parseRoute('@claude look at this', 'ask'), {
+      targets: ['claude'],
+      body: 'look at this'
+    })
+  })
+
+  it('treats a bare mention as not a request, whatever the default', () => {
+    for (const d of ['ask', 'both', 'claude']) {
+      assert.equal(parseRoute('@claude', d), null, `default ${d}`)
+    }
+  })
+
+  it('does not mistake a word starting with @ for a mention', () => {
+    assert.deepEqual(parseRoute('email me @claudette', 'copilot'), {
+      targets: ['copilot'],
+      body: 'email me @claudette'
+    })
+  })
+
+  it('routes an unaddressed message to both by default', async () => {
     const { harness, cleanup } = tempHarness()
     after(cleanup)
+    harness.dispatch = async (_f, target) => `${target} replies`
+    harness.submitProposal = async (id) => harness.getTask(id)
+
+    const result = await handleHumanMessage(harness, 'is the build green?')
+
+    assert.equal(result.routed, true)
+    assert.deepEqual(
+      result.tasks.map((t) => t.assignee),
+      ['claude', 'copilot']
+    )
+  })
+
+  it('bounces an unaddressed message back only when the default is "ask"', async () => {
+    const { harness, cleanup } = tempHarness()
+    after(cleanup)
+    harness.setChatDefault('ask')
+
     const result = await handleHumanMessage(harness, 'is the build green?')
 
     assert.equal(result.routed, false)
     assert.deepEqual(result.tasks, [])
     assert.equal(harness.getChat().at(-1).text, ROUTING_HELP)
     assert.equal(harness.listTasks().length, 0, 'no task is opened for an unrouted message')
+  })
+
+  it('persists the default so the terminal coordinator sees the same answer', () => {
+    const { harness, cleanup, root } = tempHarness()
+    after(cleanup)
+    assert.equal(harness.chatDefault, 'both', 'both is the out-of-the-box default')
+
+    harness.setChatDefault('claude')
+    assert.equal(harness.chatDefault, 'claude')
+
+    // A separate process reading the same project must agree.
+    const reopened = new Harness(root)
+    assert.equal(reopened.chatDefault, 'claude')
   })
 
   it('opens a task per target and routes the result through review', async () => {

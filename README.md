@@ -49,8 +49,8 @@ machinery that makes them accountable to each other:
 - **Work is tracked, not fired and forgotten.** A real task board. Every task carries
   detailed instructions, a requirements checklist, and attached files — so "go do a thing"
   becomes something that can actually be reviewed.
-- **You talk to both in one room.** Type once, address it with `@claude`, `@copilot`, or
-  `@both`, and their output lands back in the same place.
+- **You talk to both in one room.** Type once and it goes to both by default; address it
+  with `@claude` or `@copilot` when you want one. Their output lands back in the same place.
 - **Nothing is done until the other agent agrees.** An agent finishing work submits a
   *proposal*, never a completion. The other agent is dispatched to review it — against the
   task's requirements, one at a time. Approve closes the task; `revise` sends it back with
@@ -117,7 +117,9 @@ Both need to be authenticated once, in a normal terminal, before Plexus can driv
 2. **Click *Wire it up*** when the banner appears. That merges a `harness-bridge` entry into
    the project's `.mcp.json` and `.copilot/mcp-config.json`, and appends the shared-work
    instructions to `CLAUDE.md`. Anything already in those files is kept.
-3. **Type in the chat**, addressed to `@claude`, `@copilot`, or `@both`.
+3. **Type in the chat.** Messages go to both agents by default, and each one's answer is
+   reviewed by the other. Use `@claude` or `@copilot` to pick one, or change the default in
+   **Settings → Chat**.
 
 ---
 
@@ -153,7 +155,7 @@ Six layers, each building on the one under it.
 | 2 | **Job mailbox** — async dispatch, claimed atomically so two watchers never double-run a job | `.harness/jobs/` |
 | 3 | **The bridge** — one MCP server, loaded by both CLIs, each instance stamped with its own identity | `src/main/mcp-server.ts` |
 | 4 | **Task board** — persistent, assignable, with a full note trail | `.harness/tasks/` |
-| 5 | **Shared room** — you type once; an auditable `@mention` router decides who acts | `src/main/coordinator.ts` |
+| 5 | **Shared room** — you type once; a configurable, auditable router decides who acts | `src/main/coordinator.ts` |
 | 6 | **Consensus + reward** — proposals, reviews, escalation, and the scoreboard | `src/main/bridge/consensus.ts` |
 
 The identity stamp in Tier 3 is what makes the rest work: each CLI launches its *own*
@@ -259,8 +261,10 @@ These are deliberate, and worth understanding before you widen any of them:
 - **Everything is timed out** at 5 minutes, so a hung CLI can't wedge a turn.
 - **Revision rounds are capped at 2.** Past that, the disagreement itself is the signal.
 - **A task assignment grants no tool access.** The board is not a permission system.
-- **The chat router is dumb on purpose.** `@claude` / `@copilot` / `@both`, and anything
-  else gets bounced back rather than guessed at.
+- **The chat router is dumb on purpose.** An explicit `@claude` / `@copilot` / `@both`
+  always wins; anything else goes to one configured default (both agents, out of the box).
+  No model call decides where your message goes. Set the default to `ask` in Settings and
+  it will bounce unaddressed messages back instead — auditable, and tiring.
 - **The scoreboard is a trend, not a scorecard.** A reviewer that always approves shows a
   low *issues caught* rate — which could mean the other agent's work is genuinely clean, or
   could mean it's rubber-stamping. It cannot tell you which.

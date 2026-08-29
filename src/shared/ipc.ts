@@ -5,6 +5,7 @@ import type {
   ChatMessage,
   Job,
   AttachmentKind,
+  ChatDefault,
   Priority,
   Scoreboard,
   Task,
@@ -22,6 +23,8 @@ export type HumanOutcome = 'accept' | 'send_back' | 'cancel'
 
 export interface AppSettings {
   autoStart: boolean
+  /** Who an unaddressed chat message goes to. Stored per project. */
+  chatDefault: ChatDefault
 }
 
 export interface WiringStatus {
@@ -35,6 +38,7 @@ export interface ProjectState {
   claudeRunning: boolean
   copilotRunning: boolean
   wiring: WiringStatus | null
+  chatDefault: ChatDefault
 }
 
 export interface Snapshot {

@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
-import type { AgentId } from '../../shared/types'
-import { DEFAULT_TIMEOUT_SECONDS } from '../../shared/types'
+import type { AgentId, ChatDefault } from '../../shared/types'
+import { DEFAULT_CHAT_TARGET, DEFAULT_TIMEOUT_SECONDS } from '../../shared/types'
 
 /**
  * Tier 3 — the live channel. A headless invocation of the *other* CLI.
@@ -17,6 +17,8 @@ export interface AgentCommand {
 }
 
 export interface DispatchConfig {
+  /** Who an unaddressed chat message goes to. */
+  defaultTarget: ChatDefault
   /** Plain dispatch: read-only (§8). */
   dispatch: Record<AgentId, AgentCommand>
   /** Review dispatch: read-only *plus* the bridge's own task/review tools. */
@@ -26,6 +28,7 @@ export interface DispatchConfig {
 export const PROMPT_TOKEN = '{{PROMPT}}'
 
 export const DEFAULT_DISPATCH_CONFIG: DispatchConfig = {
+  defaultTarget: DEFAULT_CHAT_TARGET,
   dispatch: {
     claude: {
       command: 'claude',

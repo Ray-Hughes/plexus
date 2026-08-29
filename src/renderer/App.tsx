@@ -154,7 +154,12 @@ export default function App(): JSX.Element {
 
         <main className="main">
           {view === 'chat' && (
-            <ChatPane messages={snapshot?.chat ?? []} disabled={!open} onOpenTask={openTask} />
+            <ChatPane
+              messages={snapshot?.chat ?? []}
+              disabled={!open}
+              chatDefault={project?.chatDefault ?? 'both'}
+              onOpenTask={openTask}
+            />
           )}
           {view === 'tasks' && (
             <TaskBoard tasks={tasks} selectedId={selectedTask} onSelect={openTask} />

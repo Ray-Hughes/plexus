@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { AppSettings, ProjectState } from '../../shared/ipc'
+import type { ChatDefault } from '../../shared/types'
+
+const CHAT_DEFAULTS: { key: ChatDefault; label: string; hint: string }[] = [
+  { key: 'both', label: 'Both', hint: 'Each answers, and each reviews the other' },
+  { key: 'claude', label: 'claude', hint: 'copilot still reviews the result' },
+  { key: 'copilot', label: 'copilot', hint: 'claude still reviews the result' },
+  { key: 'ask', label: 'Ask me', hint: 'Bounces the message back instead of guessing' }
+]
 
 interface Props {
   project: ProjectState
@@ -63,6 +71,36 @@ export default function Settings({ project }: Props): JSX.Element {
             <button className="btn" onClick={() => void window.plexus.wireProject()}>
               {wired ? 'Re-wire' : 'Wire it up'}
             </button>
+          </div>
+        </section>
+
+        <section className="detail-section">
+          <div className="section-head">
+            <h3>Chat</h3>
+          </div>
+          <div className="setting">
+            <div>
+              <b>Where an unaddressed message goes</b>
+              <p>
+                Typing <code>@claude</code>, <code>@copilot</code> or <code>@both</code> always
+                wins. This is only what happens when you don&apos;t.
+              </p>
+              <div className="segmented" style={{ marginTop: 10, alignSelf: 'flex-start' }}>
+                {CHAT_DEFAULTS.map((d) => (
+                  <button
+                    key={d.key}
+                    className={settings?.chatDefault === d.key ? 'on' : ''}
+                    title={d.hint}
+                    onClick={() => void patch({ chatDefault: d.key })}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+              <p style={{ marginTop: 8 }}>
+                {CHAT_DEFAULTS.find((d) => d.key === settings?.chatDefault)?.hint}
+              </p>
+            </div>
           </div>
         </section>
 

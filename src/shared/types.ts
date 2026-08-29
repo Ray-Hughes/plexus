@@ -123,6 +123,15 @@ export interface Job {
 
 export const OTHER: Record<AgentId, AgentId> = { claude: 'copilot', copilot: 'claude' }
 
+/**
+ * Who an unaddressed chat message goes to. `ask` is the original behaviour —
+ * bounce it back rather than guess — kept because it is the auditable one, but
+ * having to @mention every single message gets old fast.
+ */
+export type ChatDefault = 'ask' | 'claude' | 'copilot' | 'both'
+
+export const DEFAULT_CHAT_TARGET: ChatDefault = 'both'
+
 /** §8: beyond this many revision rounds, the disagreement itself is the signal. */
 export const MAX_REVISION_ROUNDS = 2
 

@@ -6,6 +6,7 @@ import type {
   AgentId,
   Assignee,
   AttachmentKind,
+  ChatDefault,
   ChatMessage,
   Job,
   Scoreboard,
@@ -36,7 +37,7 @@ import {
   renderBrief,
   type CreateTaskInput
 } from './tasks'
-import { ensureFile, readJsonOr } from './store'
+import { ensureFile, readJsonOr, writeJson } from './store'
 
 export * from './paths'
 export * from './dispatch'
@@ -57,7 +58,7 @@ export interface HarnessEvents {
  */
 export class Harness extends EventEmitter<HarnessEvents> {
   readonly paths: HarnessPaths
-  readonly dispatchConfig: DispatchConfig
+  dispatchConfig: DispatchConfig
 
   constructor(root?: string) {
     super()
@@ -66,6 +67,20 @@ export class Harness extends EventEmitter<HarnessEvents> {
     ensureFile(this.paths.chatLog)
     ensureFile(this.paths.scoreboard, `${JSON.stringify(getScoreboard(this.paths), null, 2)}\n`)
     this.dispatchConfig = loadDispatchConfig(this.paths)
+  }
+
+  /** Who an unaddressed chat message goes to. */
+  get chatDefault(): ChatDefault {
+    return this.dispatchConfig.defaultTarget
+  }
+
+  setChatDefault(target: ChatDefault): ChatDefault {
+    const path = join(this.paths.harness, 'config.json')
+    const existing = readJsonOr<Record<string, unknown>>(path, {})
+    writeJson(path, { ...existing, defaultTarget: target })
+    this.dispatchConfig = { ...this.dispatchConfig, defaultTarget: target }
+    this.log(`CHAT DEFAULT -> ${target}`)
+    return target
   }
 
   // --- Tier 1: activity trace ---
@@ -354,6 +369,7 @@ export function loadDispatchConfig(paths: HarnessPaths): DispatchConfig {
   if (!existsSync(path)) return DEFAULT_DISPATCH_CONFIG
   const raw = readJsonOr<Partial<DispatchConfig>>(path, {})
   return {
+    defaultTarget: raw.defaultTarget ?? DEFAULT_DISPATCH_CONFIG.defaultTarget,
     dispatch: { ...DEFAULT_DISPATCH_CONFIG.dispatch, ...raw.dispatch },
     review: { ...DEFAULT_DISPATCH_CONFIG.review, ...raw.review }
   }

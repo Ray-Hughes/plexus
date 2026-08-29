@@ -1,4 +1,5 @@
-import type { AgentId, Task } from '../shared/types'
+import type { AgentId, ChatDefault, Task } from '../shared/types'
+import { DEFAULT_CHAT_TARGET } from '../shared/types'
 import type { Harness } from './bridge'
 
 /**
@@ -21,14 +22,29 @@ const MENTION = /^\s*@(claude|copilot|both)\b\s*([\s\S]*)$/i
 export const ROUTING_HELP =
   'Reply with @claude, @copilot, or @both so I know who should take this.'
 
-export function parseRoute(line: string): Route | null {
+const TARGETS: Record<Exclude<ChatDefault, 'ask'>, AgentId[]> = {
+  claude: ['claude'],
+  copilot: ['copilot'],
+  both: ['claude', 'copilot']
+}
+
+/**
+ * An explicit mention always wins. Without one, fall to `fallback` — which is
+ * `ask` only if that is what the project is configured for.
+ */
+export function parseRoute(line: string, fallback: ChatDefault = DEFAULT_CHAT_TARGET): Route | null {
   const match = MENTION.exec(line)
-  if (!match) return null
-  const who = match[1].toLowerCase()
-  const targets: AgentId[] = who === 'both' ? ['claude', 'copilot'] : [who as AgentId]
-  const body = match[2].trim()
-  if (!body) return null
-  return { targets, body }
+
+  if (match) {
+    const body = match[2].trim()
+    // "@claude" with nothing after it is a mention, not a request.
+    if (!body) return null
+    return { targets: TARGETS[match[1].toLowerCase() as keyof typeof TARGETS], body }
+  }
+
+  const body = line.trim()
+  if (!body || fallback === 'ask') return null
+  return { targets: TARGETS[fallback], body }
 }
 
 export interface HandleResult {
@@ -47,7 +63,7 @@ export async function handleHumanMessage(harness: Harness, line: string): Promis
 
   harness.postChat('human', trimmed)
 
-  const route = parseRoute(trimmed)
+  const route = parseRoute(trimmed, harness.chatDefault)
   if (!route) {
     harness.postChat('coordinator', ROUTING_HELP)
     return { routed: false, tasks: [] }

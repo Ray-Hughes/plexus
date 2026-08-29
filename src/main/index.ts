@@ -10,7 +10,7 @@ import {
   type StartResult
 } from '../shared/ipc'
 import type { Assignee, AttachmentKind, Priority, TaskStatus } from '../shared/types'
-import { isAgentId } from '../shared/types'
+import { DEFAULT_CHAT_TARGET, isAgentId } from '../shared/types'
 import { Harness } from './bridge'
 import { resolveUserPath } from './env'
 import { handleHumanMessage } from './coordinator'
@@ -49,7 +49,8 @@ function projectState(): ProjectState {
     root,
     claudeRunning: ptys?.isRunning('claude') ?? false,
     copilotRunning: ptys?.isRunning('copilot') ?? false,
-    wiring: root ? wiringStatus(root) : null
+    wiring: root ? wiringStatus(root) : null,
+    chatDefault: harness?.chatDefault ?? DEFAULT_CHAT_TARGET
   }
 }
 
@@ -307,13 +308,19 @@ function registerIpc(): void {
     })
   })
 
-  ipcMain.handle(CHANNELS.getSettings, (): AppSettings => ({
-    autoStart: loadSettings().autoStart ?? DEFAULT_SETTINGS.autoStart
-  }))
+  const readSettings = (): AppSettings => ({
+    autoStart: loadSettings().autoStart ?? DEFAULT_SETTINGS.autoStart,
+    // The routing default belongs to the project, not the machine, so the
+    // terminal coordinator sees the same answer the app does.
+    chatDefault: harness?.chatDefault ?? DEFAULT_CHAT_TARGET
+  })
+
+  ipcMain.handle(CHANNELS.getSettings, readSettings)
 
   ipcMain.handle(CHANNELS.setSettings, (_e, patch: Partial<AppSettings>): AppSettings => {
-    const next = saveSettings(patch)
-    return { autoStart: next.autoStart ?? DEFAULT_SETTINGS.autoStart }
+    if (patch.chatDefault && harness) harness.setChatDefault(patch.chatDefault)
+    if (patch.autoStart !== undefined) saveSettings({ autoStart: patch.autoStart })
+    return readSettings()
   })
 
   ipcMain.handle(

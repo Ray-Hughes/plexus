@@ -110,9 +110,14 @@ like work in flight.
 
 ## Tier 5 — Shared room
 
-`chat.log` plus a router. The routing rule is `@claude`, `@copilot`, or `@both`; anything
-else gets a question back rather than a guess. This is intentional: no model call decides
-what happens to your message before you've watched the simple version behave correctly.
+`chat.log` plus a router. An explicit `@claude`, `@copilot` or `@both` always wins;
+anything else goes to the project's `defaultTarget` (`both` out of the box, or `ask` to
+bounce it back). The point of the rule is that it is *fixed and legible* — no model call
+decides where your message goes — not that you have to type a mention every time, which
+turned out to be unusable in practice.
+
+The default lives in `.harness/config.json` rather than in app settings, so the Electron
+chat pane and the terminal coordinator can never disagree about it.
 
 The app and the terminal coordinator both call the same `handleHumanMessage()`. Every piece
 of chat-routed work goes through `submitProposal`, never straight to done, which is what

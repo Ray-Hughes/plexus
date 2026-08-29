@@ -1,7 +1,21 @@
 import { app } from 'electron'
 import { existsSync, readFileSync } from 'node:fs'
-import { isAbsolute, join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { readJsonOr, writeAtomic, writeJson } from './bridge/store'
+import {
+  bridgeHealth,
+  claudeConfigPath,
+  copilotConfigPath,
+  instructionsWritten,
+  SERVER_KEY,
+  type McpConfig
+} from './bridge/wiring'
+
+export interface WiringStatus {
+  claude: boolean
+  copilot: boolean
+  instructions: boolean
+}
 
 /**
  * A project only gets the bridge once its MCP configs point at it. In a
@@ -12,25 +26,7 @@ import { readJsonOr, writeAtomic, writeJson } from './bridge/store'
  * with its own MCP servers keeps them.
  */
 
-const SERVER_KEY = 'harness-bridge'
 const MARKER = '<!-- plexus:harness -->'
-
-export interface WiringStatus {
-  claude: boolean
-  copilot: boolean
-  instructions: boolean
-}
-
-interface McpServerEntry {
-  type?: string
-  command: string
-  args: string[]
-  env?: Record<string, string>
-}
-
-interface McpConfig {
-  mcpServers?: Record<string, McpServerEntry>
-}
 
 /** The bundled MCP server, wherever this build keeps it. */
 export function bridgeEntryPoint(): string {
@@ -39,24 +35,11 @@ export function bridgeEntryPoint(): string {
     : join(app.getAppPath(), 'dist', 'cli', 'harness-bridge.mjs')
 }
 
-const claudeConfigPath = (root: string): string => join(root, '.mcp.json')
-const copilotConfigPath = (root: string): string => join(root, '.copilot', 'mcp-config.json')
-
-function pointsAtBridge(configPath: string, root: string, entry: string): boolean {
-  const args = readJsonOr<McpConfig>(configPath, {}).mcpServers?.[SERVER_KEY]?.args
-  if (!args) return false
-  // A checked-in config may use a path relative to the repo (that is what this
-  // repo's own .mcp.json does), so compare resolved paths rather than strings.
-  return args.some((arg) => (isAbsolute(arg) ? arg : resolve(root, arg)) === resolve(entry))
-}
-
 export function wiringStatus(root: string): WiringStatus {
-  const entry = bridgeEntryPoint()
-  const claudeMd = join(root, 'CLAUDE.md')
   return {
-    claude: pointsAtBridge(claudeConfigPath(root), root, entry),
-    copilot: pointsAtBridge(copilotConfigPath(root), root, entry),
-    instructions: existsSync(claudeMd) && readFileSync(claudeMd, 'utf8').includes('submit_proposal')
+    claude: bridgeHealth(claudeConfigPath(root), root).wired,
+    copilot: bridgeHealth(copilotConfigPath(root), root).wired,
+    instructions: instructionsWritten(root)
   }
 }
 
@@ -69,6 +52,12 @@ export function wireProject(root: string): WiringStatus {
   ] as const
 
   for (const target of targets) {
+    // Leave a config that already points at a working bridge alone. A project
+    // may deliberately reference its own checked-in build with a relative path,
+    // and clobbering that with a machine-specific absolute one is how this
+    // repo's own .mcp.json ended up committed with a local path in it.
+    if (bridgeHealth(target.path, root).wired) continue
+
     const config = readJsonOr<McpConfig>(target.path, {})
     config.mcpServers = {
       ...config.mcpServers,

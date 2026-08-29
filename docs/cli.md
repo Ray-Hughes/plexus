@@ -59,13 +59,22 @@ your input:
 
 ```
 plexus coordinator · /Users/you/your-repo
-Address a message with @claude, @copilot, or @both. Ctrl-C to exit.
+Messages go to both agents. @claude or @copilot to pick one. Ctrl-C to exit.
 
 05:09:53 copilot  approved "State the harness revision cap" (task-c6b7c14b) — Verified…
-> @both does the auth refactor break the upload pipeline?
+> does the auth refactor break the upload pipeline?
 ```
 
-Anything without a mention gets a question back rather than a guess.
+An explicit `@claude` / `@copilot` / `@both` always wins. Anything else goes to the
+project's default, which lives in `.harness/config.json`:
+
+```jsonc
+{ "defaultTarget": "both" }   // "both" | "claude" | "copilot" | "ask"
+```
+
+`ask` is the original behaviour — bounce the message back rather than guess. It is the most
+auditable and the most tedious. The app writes this same file from **Settings → Chat**, so
+the pane and the terminal agree.
 
 ## Async dispatch
 

@@ -32,6 +32,12 @@ function paint(speaker: string): string {
   return tint(c.bold(speaker))
 }
 
+function routingHint(target: string): string {
+  if (target === 'ask') return 'Address a message with @claude, @copilot, or @both. Ctrl-C to exit.'
+  const who = target === 'both' ? 'both agents' : target
+  return `Messages go to ${who}. @claude or @copilot to pick one. Ctrl-C to exit.`
+}
+
 function render(at: string, speaker: string, text: string): void {
   const time = at ? at.slice(11, 19) : '--:--:--'
   process.stdout.write(`${c.dim(time)} ${paint(speaker)} ${text}\n`)
@@ -39,7 +45,7 @@ function render(at: string, speaker: string, text: string): void {
 
 process.stdout.write(
   `${c.bold('plexus coordinator')} ${c.dim(`· ${harness.paths.root}`)}\n` +
-    `${c.dim('Address a message with @claude, @copilot, or @both. Ctrl-C to exit.')}\n\n`
+    `${c.dim(routingHint(harness.chatDefault))}\n\n`
 )
 for (const message of harness.getChat(50)) render(message.at, message.speaker, message.text)
 
