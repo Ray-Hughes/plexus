@@ -1,0 +1,70 @@
+appId: dev.rayhughes.plexus
+productName: Plexus
+copyright: Copyright © 2026 Ray Hughes
+
+directories:
+  buildResources: assets
+  output: release
+
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+  - '!**/{.eslintrc,.editorconfig,.prettierrc}'
+
+# The MCP server ships alongside the app so a project can be wired to a bundled
+# path — see src/main/provision.ts.
+extraResources:
+  - from: dist/cli
+    to: cli
+    filter: ['**/*.mjs']
+
+asarUnpack:
+  - '**/node_modules/node-pty/**'
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  category: public.app-category.developer-tools
+  icon: assets/icon.png
+  darkModeSupport: true
+  # Unsigned builds still need the hardened-runtime entitlements off, or the
+  # embedded PTY helper is killed on launch.
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  contents:
+    - x: 140
+      y: 200
+      type: file
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications
+
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+  icon: assets/icon.png
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+
+linux:
+  target: [AppImage]
+  category: Development
+  icon: assets/icon.png
+
+publish:
+  provider: github
+  owner: Ray-Hughes
+  repo: plexus

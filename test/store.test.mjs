@@ -111,3 +111,49 @@ describe('activity trace (Tier 1)', () => {
     assert.equal(last.text, 'looking at the zip pipeline now')
   })
 })
+
+describe('dispatch commands', () => {
+  it('keeps plain dispatch read-only for both agents', async () => {
+    const { DEFAULT_DISPATCH_CONFIG } = await import('../dist/lib/plexus.mjs')
+    const { claude, copilot } = DEFAULT_DISPATCH_CONFIG.dispatch
+
+    assert.deepEqual(claude.args.slice(-2), ['--allowedTools', 'Read,Grep,Glob'])
+    assert.ok(copilot.args.includes('--deny-tool=write'))
+    assert.ok(copilot.args.includes('--deny-tool=shell'))
+    assert.ok(copilot.args.includes('--no-ask-user'))
+  })
+
+  it('grants the reviewer the bridge tools and nothing more', async () => {
+    const { DEFAULT_DISPATCH_CONFIG } = await import('../dist/lib/plexus.mjs')
+    const { claude, copilot } = DEFAULT_DISPATCH_CONFIG.review
+
+    const allowed = claude.args[claude.args.indexOf('--allowedTools') + 1].split(',')
+    assert.deepEqual(allowed, [
+      'Read',
+      'Grep',
+      'Glob',
+      'mcp__harness-bridge__get_task',
+      'mcp__harness-bridge__submit_review'
+    ])
+
+    // Copilot reads MCP config only from ~/.copilot/mcp-config.json, so the
+    // project-local file must be passed explicitly — and the allow syntax is
+    // `server`, not `mcp(server)`. Both were wrong once; this pins them.
+    assert.deepEqual(
+      copilot.args.slice(copilot.args.indexOf('--additional-mcp-config'), copilot.args.length),
+      ['--additional-mcp-config', '@.copilot/mcp-config.json', '--allow-tool=harness-bridge']
+    )
+    assert.ok(!copilot.args.some((a) => a.includes('mcp(')), 'mcp(...) is not valid copilot syntax')
+    assert.ok(copilot.args.includes('--deny-tool=write'), 'a reviewer still must not write')
+  })
+
+  it('substitutes the prompt into exactly one argument', async () => {
+    const { DEFAULT_DISPATCH_CONFIG, PROMPT_TOKEN } = await import('../dist/lib/plexus.mjs')
+    for (const mode of ['dispatch', 'review']) {
+      for (const [agent, spec] of Object.entries(DEFAULT_DISPATCH_CONFIG[mode])) {
+        const slots = spec.args.filter((a) => a.includes(PROMPT_TOKEN))
+        assert.equal(slots.length, 1, `${mode}.${agent} must have exactly one prompt slot`)
+      }
+    }
+  })
+})

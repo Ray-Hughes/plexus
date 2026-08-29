@@ -1,8 +1,15 @@
+# Dependencies
 node_modules/
-dist/
-out/
-.DS_Store
-*.log
 
-# Harness runtime state — regenerated at runtime, not source
+# Build output
+out/
+dist/
+release/
+tsconfig*.tsbuildinfo
+assets/*.icns
+
+# Harness runtime state — regenerated on demand, not source
 .harness/
+
+# OS
+.DS_Store

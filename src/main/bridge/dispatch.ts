@@ -70,7 +70,12 @@ export const DEFAULT_DISPATCH_CONFIG: DispatchConfig = {
         '--no-ask-user',
         '--deny-tool=write',
         '--deny-tool=shell',
-        '--allow-tool=mcp(harness-bridge)'
+        // Copilot only reads MCP config from ~/.copilot/mcp-config.json, so the
+        // project-local one has to be handed to it explicitly. The allow syntax
+        // is `server` or `server(tool)` — there is no `mcp(...)` wrapper.
+        '--additional-mcp-config',
+        '@.copilot/mcp-config.json',
+        '--allow-tool=harness-bridge'
       ]
     }
   }
