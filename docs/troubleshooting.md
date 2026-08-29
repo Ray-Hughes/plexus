@@ -71,18 +71,25 @@ Check what the app sees:
 $SHELL -ilc 'command -v claude copilot'
 ```
 
-## The app vanished after I opened it
+## "Plexus is damaged and can't be opened"
 
-Not a crash — macOS deleted it. On macOS 15 and later, an unsigned app that still carries
-the download quarantine flag is killed on launch and removed from disk, without going to
-the Trash. Reinstall from the `.dmg` and clear the flag *before* the first launch:
+Fixed in v0.3.1 — **download that or later.** Builds before it carried an invalid signature
+(electron-builder skipped signing but had already modified the bundle, leaving Electron's
+stale one behind). macOS reports an Apple Silicon app with a broken signature as *damaged*,
+refuses to open it, and **deletes it from disk** — which is why it seemed to vanish.
+
+## "Apple could not verify Plexus is free of malware"
+
+Expected. The builds are ad-hoc signed but not notarized, because notarizing needs a paid
+Apple developer account. Either click **Open Anyway** in System Settings → Privacy &
+Security, or skip it:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Plexus.app
 ```
 
-If it exits immediately with code 137 and is still on disk, that's the same thing caught
-one step earlier.
+A launch that exits immediately with code 137 and leaves the app in place is the same
+thing, caught from a terminal where there is no dialog to show you.
 
 ## macOS asks for keychain access
 

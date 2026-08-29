@@ -39,21 +39,36 @@ node scripts/fix-native-permissions.mjs
 Builds are unsigned by default, which is fine for a personal tool and not fine for handing
 to anyone else.
 
-**macOS.** Unsigned builds are worse than a warning on macOS 15 and later. Launching a
-quarantined unsigned app gets it SIGKILLed *and removed from disk* — not moved to the
-Trash, deleted. The old right-click → *Open* escape hatch no longer applies. Until you
-sign, every user has to run:
+**macOS.** Builds are ad-hoc signed by `scripts/after-pack.cjs`, and that hook is doing
+real work rather than being a formality.
 
-```bash
-xattr -dr com.apple.quarantine /Applications/Plexus.app
+Left alone, `electron-builder` skips signing when there is no Developer ID — but it has
+already modified the bundle, so Electron's own inherited signature stays behind and is now
+*invalid*:
+
+```
+$ codesign --verify --deep --strict Plexus.app
+Plexus.app: code has no resources but signature indicates they must be present
 ```
 
-before the first launch. That is fine for your own machine and untenable for handing the
-app to anyone else, which makes signing the first thing to fix if this ever leaves your
-laptop.
+On Apple Silicon, macOS treats an invalid signature far more harshly than a missing one: it
+reports the app as **"damaged"**, refuses to open it, and *deletes it from disk*. There is
+no "Open Anyway" for that state, because the file is gone by the time you look.
+
+Ad-hoc signing produces a valid signature with the right identifier
+(`dev.rayhughes.plexus`) and no team. Gatekeeper still refuses to open it unprompted —
+ad-hoc is not notarized — but the app survives, and the user gets the ordinary
+*"Apple could not verify…"* dialog with a working **Open Anyway** in
+System Settings → Privacy & Security.
+
+`electron-builder` cannot do this itself: `mac.identity` only accepts a named keychain
+identity, and `'-'` is rejected with *"no valid identity with this name in the keychain"*.
+Hence the hook, which no-ops when `CSC_LINK` or `CSC_NAME` is set so a real certificate
+always wins.
 
 To sign properly you need an Apple Developer account and a *Developer ID Application*
-certificate in your keychain; `electron-builder` picks it up automatically. For
+certificate in your keychain; `electron-builder` picks it up automatically. Notarizing on
+top of that removes the prompt entirely. For
 distribution outside the App Store you also want notarization:
 
 ```yaml

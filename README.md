@@ -84,21 +84,21 @@ Download the installer for your platform from the
 | Windows | `Plexus-Setup-<version>-x64.exe` |
 | Linux | `Plexus-<version>.AppImage` |
 
-> **Unsigned builds — clear the quarantine flag before the first launch.**
+> **macOS: these builds are signed, but not by a paid Apple developer account.**
 >
-> These builds aren't code-signed. On macOS 15 and later, opening a quarantined unsigned app
-> doesn't just show a warning — Gatekeeper kills it and **deletes it**, without moving it to
-> the Trash. Right-click → *Open* no longer works around this.
+> Plexus is ad-hoc signed, so macOS trusts that the app hasn't been tampered with but can't
+> verify who made it. On first launch you'll get *"Apple could not verify Plexus is free of
+> malware"*. Either:
 >
-> After dragging Plexus to Applications, run this once, before you open it:
+> - open **System Settings → Privacy & Security**, and click **Open Anyway**, or
+> - skip the prompt entirely with one command:
 >
-> ```bash
-> xattr -dr com.apple.quarantine /Applications/Plexus.app
-> ```
+>   ```bash
+>   xattr -dr com.apple.quarantine /Applications/Plexus.app
+>   ```
 >
 > On Windows, choose *More info → Run anyway* at the SmartScreen prompt.
-> See [docs/packaging.md](docs/packaging.md) for how to sign your own builds.
-
+> See [docs/packaging.md](docs/packaging.md) for how to sign your own builds properly.
 
 ### Prerequisites
 

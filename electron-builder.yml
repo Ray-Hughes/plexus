@@ -6,6 +6,8 @@ directories:
   buildResources: assets
   output: release
 
+afterPack: scripts/after-pack.cjs
+
 files:
   - out/**/*
   - package.json
@@ -36,8 +38,14 @@ mac:
   category: public.app-category.developer-tools
   icon: assets/icon.png
   darkModeSupport: true
-  # Unsigned builds still need the hardened-runtime entitlements off, or the
-  # embedded PTY helper is killed on launch.
+  # Ad-hoc sign ("-") when there is no Developer ID. Without this,
+  # electron-builder leaves Electron's own inherited signature on a bundle it
+  # has modified, which is *invalid* rather than merely untrusted — and macOS
+  # reports an arm64 app with a broken signature as "damaged", refuses to open
+  # it, and deletes it. Ad-hoc is still untrusted, but it is valid, so the user
+  # gets the normal "unidentified developer" path instead.
+  # Replace with a real "Developer ID Application" identity to ship properly.
+  identity: null
   hardenedRuntime: false
   gatekeeperAssess: false
 
