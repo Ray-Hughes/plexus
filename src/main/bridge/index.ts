@@ -230,6 +230,27 @@ export class Harness extends EventEmitter<HarnessEvents> {
     return task
   }
 
+  /**
+   * You breaking a tie is not one of the agents reviewing, so it must not move
+   * the scoreboard — the whole point of those tallies is that they record what
+   * the agents did unaided.
+   */
+  resolveByHuman(id: string, outcome: 'accept' | 'send_back' | 'cancel', notes: string): Task {
+    const task = mutateTask(this.paths, id, (t) => {
+      t.status = outcome === 'accept' ? 'done' : outcome === 'cancel' ? 'cancelled' : 'revise'
+      if (outcome === 'send_back' && t.assignee === 'human') {
+        // Hand it back to whoever proposed it, not to nobody.
+        const reviewer = (Object.keys(t.reviews) as AgentId[])[0]
+        if (reviewer) t.assignee = OTHER[reviewer]
+      }
+      addNote(t, 'human', `resolved by human (${outcome})${notes ? `: ${notes}` : ''}`)
+    })
+    this.log(`HUMAN RESOLVED ${id}: ${outcome} -> ${task.status}`)
+    this.postChat('human', `resolved "${task.title}" (${id}) — ${outcome}${notes ? `: ${notes}` : ''}`)
+    this.emit('task', task)
+    return task
+  }
+
   getScoreboard(): Scoreboard {
     return getScoreboard(this.paths)
   }

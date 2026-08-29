@@ -121,17 +121,26 @@ function TaskCard({
 }
 
 /**
- * The two agents couldn't agree, so the call is the human's. Recording it as a
- * verdict keeps the task history honest about how it actually resolved.
+ * The two agents couldn't agree, so the call is yours. It is recorded on the
+ * task but deliberately not on the scoreboard: those tallies are meant to show
+ * what the agents managed unaided.
  */
 function Escalation({ task }: { task: Task }): JSX.Element {
   const [notes, setNotes] = useState('')
-  const reviewer: AgentId = task.assignee === 'claude' ? 'copilot' : 'claude'
+  // By the time a task is needs_human its assignee is "human", so the pair has
+  // to come from the review that escalated it, not from the assignee.
+  const reviewer = (Object.keys(task.reviews) as AgentId[])[0]
+  const proposer = reviewer ? (reviewer === 'claude' ? 'copilot' : 'claude') : null
+  const verdict = reviewer ? task.reviews[reviewer]?.verdict : undefined
 
   return (
     <div className="escalation">
       <p>
-        This needs your call — {reviewer} and {task.created_by} couldn&apos;t agree.
+        {reviewer && proposer
+          ? verdict === 'reject'
+            ? `${reviewer} rejected ${proposer}'s approach outright — that's a disagreement about the approach, not the execution.`
+            : `${proposer} and ${reviewer} went ${task.revision_rounds} rounds without agreeing.`
+          : 'This task needs your call.'}
       </p>
       <textarea
         rows={2}
@@ -153,24 +162,17 @@ function Escalation({ task }: { task: Task }): JSX.Element {
       <div className="escalation-actions">
         <button
           className="mini approve"
-          onClick={() =>
-            void window.plexus.resolveTask(task.id, 'approve', notes || 'accepted as-is', reviewer)
-          }
+          onClick={() => void window.plexus.resolveTask(task.id, 'accept', notes)}
         >
           Accept it
         </button>
         <button
           className="mini revise"
-          onClick={() =>
-            void window.plexus.resolveTask(task.id, 'revise', notes || 'needs another pass', reviewer)
-          }
+          onClick={() => void window.plexus.resolveTask(task.id, 'send_back', notes)}
         >
-          Send back
+          Send back{proposer ? ` to ${proposer}` : ''}
         </button>
-        <button
-          className="mini"
-          onClick={() => void window.plexus.updateTask(task.id, { status: 'cancelled', note: notes })}
-        >
+        <button className="mini" onClick={() => void window.plexus.resolveTask(task.id, 'cancel', notes)}>
           Drop it
         </button>
       </div>

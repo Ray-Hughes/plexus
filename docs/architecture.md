@@ -22,13 +22,16 @@ src/
 │   │   ├── scoreboard.ts Tier 6
 │   │   └── index.ts      the Harness facade everything else consumes
 │   ├── mcp-server.ts     front door 1 — stdio, for claude and copilot
-│   ├── coordinator.ts    the @mention router
-│   ├── ipc.ts / index.ts front door 2 — Electron
+│   ├── coordinator.ts    the @mention router, shared by the app and the CLI
+│   ├── index.ts          front door 2 — Electron main, window and IPC handlers
 │   ├── pty.ts            node-pty session management
 │   ├── env.ts            login-shell PATH resolution
-│   └── provision.ts      wiring a project's MCP configs
+│   ├── provision.ts      wiring a project's MCP configs
+│   └── settings.ts       last project, autostart
 ├── cli/                  front door 3 — terminal coordinator + job watcher
-└── renderer/             React UI
+├── lib.ts                the non-Electron public surface the tests exercise
+├── preload/              contextBridge — the only thing the renderer can reach
+└── renderer/             React UI: panes/, views/, components/
 ```
 
 ## Why the state is flat files

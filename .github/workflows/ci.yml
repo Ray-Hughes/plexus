@@ -91,7 +91,10 @@ jobs:
       - name: Verify node-pty under Electron
         run: npx electron scripts/pty-smoke.cjs
 
-      - name: Build and package (no publish)
+      - name: Build
+        run: npm run build
+
+      - name: Package (no publish)
         run: npx electron-builder --publish never
         env:
           # Unsigned CI builds — see docs/packaging.md.

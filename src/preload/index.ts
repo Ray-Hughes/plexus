@@ -32,8 +32,8 @@ const api: PlexusApi = {
   createTask: (input) => ipcRenderer.invoke(CHANNELS.createTask, input),
   assignTask: (taskId, assignee) => ipcRenderer.invoke(CHANNELS.assignTask, taskId, assignee),
   updateTask: (taskId, patch) => ipcRenderer.invoke(CHANNELS.updateTask, taskId, patch),
-  resolveTask: (taskId, verdict, notes, as) =>
-    ipcRenderer.invoke(CHANNELS.resolveTask, taskId, verdict, notes, as),
+  resolveTask: (taskId, outcome, notes) =>
+    ipcRenderer.invoke(CHANNELS.resolveTask, taskId, outcome, notes),
 
   onPtyData: (cb) => subscribe<[AgentId, string]>(CHANNELS.ptyData, cb),
   onPtyExit: (cb) => subscribe<[AgentId, number]>(CHANNELS.ptyExit, cb),

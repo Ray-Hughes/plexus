@@ -39,7 +39,10 @@ jobs:
       - name: Verify node-pty under Electron
         run: npx electron scripts/pty-smoke.cjs
 
-      - name: Build, package, and publish
+      - name: Build
+        run: npm run build
+
+      - name: Package and publish
         run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -13,7 +13,13 @@ app.on('ready', () => {
     return app.exit(1)
   }
 
-  const term = pty.spawn(process.platform === 'win32' ? 'cmd.exe' : '/bin/sh', ['-c', 'echo plexus-pty-ok && exit 0'], {
+  // cmd.exe takes /c, not -c. Getting this wrong produces no output at all
+  // rather than an error, which reads exactly like a broken native module.
+  const isWindows = process.platform === 'win32'
+  const shell = isWindows ? 'cmd.exe' : '/bin/sh'
+  const args = isWindows ? ['/c', 'echo plexus-pty-ok'] : ['-c', 'echo plexus-pty-ok && exit 0']
+
+  const term = pty.spawn(shell, args, {
     name: 'xterm-256color',
     cols: 80,
     rows: 24,

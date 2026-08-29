@@ -7,8 +7,7 @@ import type {
   Priority,
   Scoreboard,
   Task,
-  TaskStatus,
-  Verdict
+  TaskStatus
 } from './types'
 
 /** The contract between the renderer and the main process. */
@@ -17,6 +16,8 @@ export interface StartResult {
   ok: boolean
   error?: string
 }
+
+export type HumanOutcome = 'accept' | 'send_back' | 'cancel'
 
 export interface WiringStatus {
   claude: boolean
@@ -64,7 +65,7 @@ export interface PlexusApi {
   }) => Promise<Task>
   assignTask: (taskId: string, assignee: Assignee) => Promise<Task>
   updateTask: (taskId: string, patch: { status?: TaskStatus; note?: string }) => Promise<Task>
-  resolveTask: (taskId: string, verdict: Verdict, notes: string, as: AgentId) => Promise<Task>
+  resolveTask: (taskId: string, outcome: HumanOutcome, notes: string) => Promise<Task>
 
   // events
   onPtyData: (cb: (id: AgentId, chunk: string) => void) => () => void

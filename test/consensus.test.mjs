@@ -162,3 +162,69 @@ describe('consensus (Tier 6)', () => {
     assert.match(harness.getChat().at(-1).text, /couldn't get copilot to review/)
   })
 })
+
+describe('human resolution', () => {
+  /** Drives a task to needs_human the way a reject does. */
+  function escalated() {
+    const fixture = tempHarness()
+    fixture.harness.dispatch = async (_f, _t, prompt) => {
+      const id = /Task (task-[a-z0-9]{8})/.exec(prompt)[1]
+      fixture.harness.submitReview(id, 'reject', 'wrong approach', 'copilot')
+      return 'reviewed'
+    }
+    return fixture
+  }
+
+  it('accepting closes the task without touching the scoreboard', async () => {
+    const { harness, cleanup } = escalated()
+    after(cleanup)
+    const task = harness.createTask({ title: 't', description: 'd', created_by: 'claude' })
+    await harness.submitProposal(task.id, 'r', 'claude')
+    const before = harness.getScoreboard()
+
+    const resolved = harness.resolveByHuman(task.id, 'accept', 'close enough')
+
+    assert.equal(resolved.status, 'done')
+    assert.deepEqual(
+      harness.getScoreboard(),
+      before,
+      'a human breaking a tie is not one of the agents reviewing'
+    )
+    assert.match(resolved.notes.at(-1).text, /resolved by human \(accept\): close enough/)
+    assert.equal(resolved.notes.at(-1).by, 'human')
+  })
+
+  it('sending back hands the task to the proposer, not to nobody', async () => {
+    const { harness, cleanup } = escalated()
+    after(cleanup)
+    const task = harness.createTask({ title: 't', description: 'd', created_by: 'claude' })
+    await harness.submitProposal(task.id, 'r', 'claude')
+    assert.equal(harness.getTask(task.id).assignee, 'human')
+
+    const sent = harness.resolveByHuman(task.id, 'send_back', 'try again')
+
+    assert.equal(sent.status, 'revise')
+    assert.equal(sent.assignee, 'claude', 'copilot reviewed, so claude proposed')
+  })
+
+  it('dropping it cancels the task', async () => {
+    const { harness, cleanup } = escalated()
+    after(cleanup)
+    const task = harness.createTask({ title: 't', description: 'd', created_by: 'claude' })
+    await harness.submitProposal(task.id, 'r', 'claude')
+
+    assert.equal(harness.resolveByHuman(task.id, 'cancel', '').status, 'cancelled')
+  })
+
+  it('announces the resolution in the shared room', async () => {
+    const { harness, cleanup } = escalated()
+    after(cleanup)
+    const task = harness.createTask({ title: 'the disputed one', description: 'd', created_by: 'claude' })
+    await harness.submitProposal(task.id, 'r', 'claude')
+    harness.resolveByHuman(task.id, 'accept', 'my call')
+
+    const last = harness.getChat().at(-1)
+    assert.equal(last.speaker, 'human')
+    assert.match(last.text, /resolved "the disputed one".*accept: my call/)
+  })
+})

@@ -1,8 +1,14 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { CHANNELS, type ProjectState, type Snapshot, type StartResult } from '../shared/ipc'
-import type { AgentId, Assignee, Priority, TaskStatus, Verdict } from '../shared/types'
+import {
+  CHANNELS,
+  type HumanOutcome,
+  type ProjectState,
+  type Snapshot,
+  type StartResult
+} from '../shared/ipc'
+import type { Assignee, Priority, TaskStatus } from '../shared/types'
 import { isAgentId } from '../shared/types'
 import { Harness } from './bridge'
 import { resolveUserPath } from './env'
@@ -259,11 +265,9 @@ function registerIpc(): void {
 
   ipcMain.handle(
     CHANNELS.resolveTask,
-    (_e, taskId: string, verdict: Verdict, notes: string, as: AgentId) => {
+    (_e, taskId: string, outcome: HumanOutcome, notes: string) => {
       if (!harness) throw new Error('no project open')
-      // The human breaking a tie is recorded as that agent's verdict, so the
-      // task's history shows how it actually resolved.
-      return harness.submitReview(taskId, verdict, `[resolved by human] ${notes}`, as)
+      return harness.resolveByHuman(taskId, outcome, notes)
     }
   )
 }
