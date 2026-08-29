@@ -190,12 +190,16 @@ describe('dispatch environment', () => {
     after(cleanup)
     harness.spawnEnv = { PATH: '/custom/bin:/usr/bin' }
 
-    // Ask the shell to print PATH back, standing in for a CLI.
+    // Stand in for a CLI with node itself, which exists on every platform --
+    // /bin/sh does not, and this test failed on the Windows runner.
     harness.dispatchConfig = {
       ...harness.dispatchConfig,
       dispatch: {
         ...harness.dispatchConfig.dispatch,
-        copilot: { command: '/bin/sh', args: ['-c', 'printf "%s" "$PATH"'] }
+        copilot: {
+          command: process.execPath,
+          args: ['-e', 'process.stdout.write(process.env.PATH ?? "")']
+        }
       }
     }
 
