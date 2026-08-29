@@ -7,24 +7,32 @@ npm run dist         # both
 npm run pack         # unpacked app dir, no installer — fastest way to test packaging
 ```
 
-## The one gotcha
+## No native toolchain required
 
-`electron-builder` rebuilds `node-pty` **in place** for whichever architecture it's
-currently targeting. Packaging for x64 on an Apple Silicon machine therefore leaves
-`node_modules/node-pty` compiled for x64, and `npm run dev` then fails with:
+`node-pty` 1.1 ships **N-API** prebuilds, which are ABI-stable across both Node and
+Electron. Nothing needs compiling — no Xcode, no Visual Studio, no Python, on any machine
+or CI runner. `npmRebuild: false` in `electron-builder.yml` keeps it that way.
+
+That setting is load-bearing, not an optimisation. Letting `electron-builder` rebuild
+replaces the host's prebuild with one for whatever architecture was last packaged, so
+building for x64 on an Apple Silicon machine leaves `npm run dev` failing with a bare:
 
 ```
 posix_spawnp failed.
 ```
 
-It looks like a PATH problem — it isn't. Fix it with:
+### The one thing that does need fixing
+
+npm does not preserve the executable bit when it packs a tarball, and on macOS and Linux
+`node-pty` execs a `spawn-helper` binary out of that prebuild. Without `+x`, every spawn
+fails with the same uninformative `posix_spawnp failed.`
+
+`scripts/fix-native-permissions.mjs` runs on `postinstall` and restores it. If you ever see
+that error after a fresh `npm ci`, run it by hand:
 
 ```bash
-npm run rebuild      # electron-builder install-app-deps
+node scripts/fix-native-permissions.mjs
 ```
-
-The `dist:*` scripts already do this for you afterwards. It only bites when you invoke
-`electron-builder` directly.
 
 ## Signing
 

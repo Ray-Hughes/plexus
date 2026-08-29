@@ -15,14 +15,13 @@
     "build:cli": "node scripts/build-cli.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "npm run build:cli && node --test \"test/*.test.mjs\"",
-    "postinstall": "electron-builder install-app-deps",
-    "pack": "npm run build && electron-builder --dir && npm run rebuild",
-    "dist:mac": "npm run build && electron-builder --mac && npm run rebuild",
-    "dist:win": "npm run build && electron-builder --win && npm run rebuild",
-    "dist": "npm run build && electron-builder --mac --win && npm run rebuild",
     "test:coverage": "npm run build:cli && node --test --experimental-test-coverage --test-reporter=spec --test-coverage-exclude='**/node_modules/**' --test-coverage-exclude='test/**' --test-coverage-exclude='dist/cli/**' test/*.test.mjs",
     "coverage:badge": "node scripts/coverage-badge.mjs",
-    "rebuild": "electron-builder install-app-deps"
+    "pack": "npm run build && electron-builder --dir",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist": "npm run build && electron-builder --mac --win",
+    "postinstall": "node scripts/fix-native-permissions.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",

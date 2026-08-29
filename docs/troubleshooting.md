@@ -43,12 +43,17 @@ node -e "import('./dist/lib/plexus.mjs').then(({Harness})=>
 
 ## `posix_spawnp failed`
 
-`node-pty` is compiled for the wrong architecture — almost always because you packaged for
-another arch. See [packaging.md](packaging.md#the-one-gotcha).
+Nothing to do with PATH, despite how it reads. `node-pty` execs a `spawn-helper` binary out
+of its prebuild directory, and npm strips the executable bit when it packs a tarball:
 
 ```bash
-npm run rebuild
+node scripts/fix-native-permissions.mjs
 ```
+
+That runs automatically on `postinstall`. The other way to hit this is letting
+`electron-builder` rebuild the native module, which swaps the host binary for one built for
+whatever architecture was last packaged — `npmRebuild: false` prevents that. See
+[packaging.md](packaging.md#no-native-toolchain-required).
 
 ## `"claude" was not found on PATH`
 

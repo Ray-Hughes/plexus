@@ -22,6 +22,11 @@ extraResources:
 asarUnpack:
   - '**/node_modules/node-pty/**'
 
+# node-pty ships N-API prebuilds that work under both Node and Electron, so
+# there is nothing to rebuild — and letting electron-builder rebuild it
+# replaces the host binary with one for whatever arch was last packaged.
+npmRebuild: false
+
 mac:
   target:
     - target: dmg

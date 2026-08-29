@@ -36,6 +36,9 @@ jobs:
       - name: Test before shipping
         run: npm test
 
+      - name: Verify node-pty under Electron
+        run: npx electron scripts/pty-smoke.cjs
+
       - name: Build, package, and publish
         run: npx electron-builder --publish always
         env:

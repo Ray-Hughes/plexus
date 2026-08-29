@@ -86,6 +86,11 @@ jobs:
 
       - run: npm ci
 
+      # Proves the native module actually spawns a PTY under Electron on this
+      # platform, which is the thing that silently breaks between machines.
+      - name: Verify node-pty under Electron
+        run: npx electron scripts/pty-smoke.cjs
+
       - name: Build and package (no publish)
         run: npx electron-builder --publish never
         env:

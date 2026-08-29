@@ -14,6 +14,9 @@ npm run typecheck && npm test
 
 CI runs both across Linux, macOS and Windows, and packages the app on macOS and Windows.
 
+No compiler is needed to work on this. `node-pty` ships N-API prebuilds, and `postinstall`
+only restores the executable bit npm strips from its `spawn-helper`.
+
 ## Where things go
 
 Bridge logic belongs in `src/main/bridge/` and nowhere else. The MCP server, the Electron

@@ -246,9 +246,9 @@ npm run typecheck
 npm run dist:mac     # or dist:win — produces installers in release/
 ```
 
-> Packaging for a different architecture rebuilds `node-pty` in place for that arch, which
-> breaks `npm run dev` until you run `npm run rebuild`. The `dist:*` scripts do this for
-> you.
+> No native toolchain is needed anywhere — `node-pty` ships N-API prebuilds that work under
+> both Node and Electron. See [packaging.md](docs/packaging.md#no-native-toolchain-required)
+> for why `npmRebuild: false` matters.
 
 | Doc | |
 |---|---|
