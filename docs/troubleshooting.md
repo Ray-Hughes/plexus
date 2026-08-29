@@ -80,13 +80,26 @@ refuses to open it, and **deletes it from disk** — which is why it seemed to v
 
 ## "Apple could not verify Plexus is free of malware"
 
-Expected. The builds are ad-hoc signed but not notarized, because notarizing needs a paid
-Apple developer account. Either click **Open Anyway** in System Settings → Privacy &
-Security, or skip it:
+Expected, and *not* the same as "damaged" — the app is fine and still on disk. The builds
+are ad-hoc signed but not notarized, because notarizing needs a paid Apple developer
+account, so macOS quarantines them on download.
+
+The dialog offers only **Move to Trash** and **Done**. Click **Done**, then either open
+**System Settings → Privacy & Security** and click **Open Anyway**, or clear the flag:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Plexus.app
 ```
+
+Easiest is to let the installer do it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ray-Hughes/plexus/main/scripts/install-macos.sh | bash
+```
+
+**This comes back on every manual update.** The quarantine flag belongs to the copy your
+browser downloaded, so dragging a new `.dmg` over an existing install re-applies it — even
+if you cleared it on the copy you just replaced.
 
 A launch that exits immediately with code 137 and leaves the app in place is the same
 thing, caught from a terminal where there is no dialog to show you.

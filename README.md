@@ -74,7 +74,16 @@ time — which is what turns "looks fine to me" into a review.
 
 ### The app
 
-Download the installer for your platform from the
+**macOS — one command:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ray-Hughes/plexus/main/scripts/install-macos.sh | bash
+```
+
+That fetches the latest release for your architecture, installs it to `/Applications`, and
+clears the download quarantine so it opens on the first try.
+
+**Or download it yourself** from the
 [**Releases**](https://github.com/Ray-Hughes/plexus/releases) page:
 
 | Platform | File |
@@ -84,18 +93,20 @@ Download the installer for your platform from the
 | Windows | `Plexus-Setup-<version>-x64.exe` |
 | Linux | `Plexus-<version>.AppImage` |
 
-> **macOS: these builds are signed, but not by a paid Apple developer account.**
+> **If you install by hand on macOS, expect one prompt.** Plexus is ad-hoc signed but not
+> notarized — notarizing needs a paid Apple developer account — so the first launch says
+> *"Apple could not verify Plexus is free of malware"* with only **Move to Trash** and
+> **Done**. Click **Done**, then either:
 >
-> Plexus is ad-hoc signed, so macOS trusts that the app hasn't been tampered with but can't
-> verify who made it. On first launch you'll get *"Apple could not verify Plexus is free of
-> malware"*. Either:
->
-> - open **System Settings → Privacy & Security**, and click **Open Anyway**, or
-> - skip the prompt entirely with one command:
+> - open **System Settings → Privacy & Security** and click **Open Anyway**, or
+> - clear the flag directly, which is what the installer above does:
 >
 >   ```bash
 >   xattr -dr com.apple.quarantine /Applications/Plexus.app
 >   ```
+>
+> Dragging a fresh download over an existing install re-applies the flag, so you'll see the
+> prompt again after every manual update. The one-liner avoids that.
 >
 > On Windows, choose *More info → Run anyway* at the SmartScreen prompt.
 > See [docs/packaging.md](docs/packaging.md) for how to sign your own builds properly.
