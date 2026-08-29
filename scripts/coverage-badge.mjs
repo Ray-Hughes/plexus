@@ -7,6 +7,20 @@ import { mkdirSync, writeFileSync } from 'node:fs'
  * rather than a hand-written one.
  */
 
+import { readdirSync } from 'node:fs'
+
+// Globbed, not listed: a hardcoded list silently under-reports the moment
+// somebody adds a test file, which is exactly what it did.
+const testFiles = readdirSync('test')
+  .filter((f) => f.endsWith('.test.mjs'))
+  .sort()
+  .map((f) => `test/${f}`)
+
+if (testFiles.length === 0) {
+  console.error('no test files found in test/')
+  process.exit(1)
+}
+
 const args = [
   '--test',
   '--experimental-test-coverage',
@@ -14,12 +28,7 @@ const args = [
   '--test-coverage-exclude=**/node_modules/**',
   '--test-coverage-exclude=test/**',
   '--test-coverage-exclude=dist/cli/**',
-  'test/tasks.test.mjs',
-  'test/consensus.test.mjs',
-  'test/jobs.test.mjs',
-  'test/coordinator.test.mjs',
-  'test/store.test.mjs',
-  'test/mcp.test.mjs'
+  ...testFiles
 ]
 
 let output = ''
