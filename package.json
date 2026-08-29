@@ -14,7 +14,7 @@
     "build": "npm run typecheck && electron-vite build && npm run build:cli",
     "build:cli": "node scripts/build-cli.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "test": "npm run build:cli && node --test test/*.test.mjs",
+    "test": "npm run build:cli && node --test \"test/*.test.mjs\"",
     "postinstall": "electron-builder install-app-deps",
     "pack": "npm run build && electron-builder --dir && npm run rebuild",
     "dist:mac": "npm run build && electron-builder --mac && npm run rebuild",
