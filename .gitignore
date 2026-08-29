@@ -1,0 +1,8 @@
+node_modules/
+dist/
+out/
+.DS_Store
+*.log
+
+# Harness runtime state — regenerated at runtime, not source
+.harness/
