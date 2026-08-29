@@ -240,7 +240,7 @@ These are deliberate, and worth understanding before you widen any of them:
 ```bash
 npm install
 npm run dev          # Electron with HMR
-npm test             # 64 tests, including live MCP round-trips over stdio
+npm test             # includes live MCP round-trips over stdio
 npm run test:coverage
 npm run typecheck
 npm run dist:mac     # or dist:win — produces installers in release/
