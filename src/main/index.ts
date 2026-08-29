@@ -35,6 +35,7 @@ let ptys: PtyManager | null = null
 let userPath = process.env.PATH ?? ''
 const pathReady: Promise<void> = resolveUserPath().then((resolved) => {
   userPath = resolved
+  if (harness) harness.spawnEnv = { PATH: resolved }
 })
 
 const isDev = !app.isPackaged
@@ -83,6 +84,8 @@ function pushSnapshot(): void {
 function openProject(root: string): ProjectState {
   ptys?.killAll()
   harness = new Harness(root)
+  // Headless dispatch spawns the CLIs too, and needs the same PATH the panes get.
+  harness.spawnEnv = { PATH: userPath }
   for (const event of ['activity', 'chat', 'task', 'job', 'scoreboard'] as const) {
     harness.on(event, pushSnapshot)
   }

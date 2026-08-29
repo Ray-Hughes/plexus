@@ -183,3 +183,60 @@ describe('activity + chat parsing edge cases', () => {
     c()
   })
 })
+
+describe('dispatch environment', () => {
+  it('passes the harness spawn environment to the CLI', async () => {
+    const { harness, cleanup } = tempHarness()
+    after(cleanup)
+    harness.spawnEnv = { PATH: '/custom/bin:/usr/bin' }
+
+    // Ask the shell to print PATH back, standing in for a CLI.
+    harness.dispatchConfig = {
+      ...harness.dispatchConfig,
+      dispatch: {
+        ...harness.dispatchConfig.dispatch,
+        copilot: { command: '/bin/sh', args: ['-c', 'printf "%s" "$PATH"'] }
+      }
+    }
+
+    const out = await harness.dispatch('claude', 'copilot', 'ignored')
+    assert.equal(out, '/custom/bin:/usr/bin', 'the spawned process must see the resolved PATH')
+  })
+
+  it('explains a missing CLI instead of reporting a bare ENOENT', async () => {
+    const { harness, cleanup } = tempHarness()
+    after(cleanup)
+    harness.dispatchConfig = {
+      ...harness.dispatchConfig,
+      dispatch: {
+        ...harness.dispatchConfig.dispatch,
+        copilot: { command: 'definitely-not-installed-xyz', args: ['{{PROMPT}}'] }
+      }
+    }
+
+    await assert.rejects(
+      () => harness.dispatch('claude', 'copilot', 'do a thing'),
+      (err) => {
+        assert.match(err.message, /was not found on PATH/)
+        assert.doesNotMatch(err.message, /ENOENT/)
+        assert.equal(err.timedOut, false)
+        return true
+      }
+    )
+  })
+
+  it('records the failure on the activity trace', async () => {
+    const { harness, cleanup } = tempHarness()
+    after(cleanup)
+    harness.dispatchConfig = {
+      ...harness.dispatchConfig,
+      dispatch: {
+        ...harness.dispatchConfig.dispatch,
+        copilot: { command: 'definitely-not-installed-xyz', args: ['{{PROMPT}}'] }
+      }
+    }
+    await harness.dispatch('claude', 'copilot', 'x').catch(() => {})
+
+    assert.match(harness.getActivity(2).map((e) => e.text).join('\n'), /FAILED <- copilot/)
+  })
+})

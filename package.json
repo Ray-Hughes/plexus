@@ -1,6 +1,6 @@
 {
   "name": "plexus",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Dual-agent harness: Claude Code + Copilot CLI joined by a shared nervous system",
   "author": {
     "name": "Ray Hughes",

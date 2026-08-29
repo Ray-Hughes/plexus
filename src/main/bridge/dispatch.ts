@@ -129,10 +129,23 @@ export async function runHeadless(
       },
       (err, stdout, stderr) => {
         if (err) {
-          const timedOut = (err as NodeJS.ErrnoException & { killed?: boolean }).killed === true
-          const detail = timedOut
-            ? `${target} timed out after ${timeout / 1000}s`
-            : stderr.trim() || err.message
+          const failure = err as NodeJS.ErrnoException & { killed?: boolean }
+          const timedOut = failure.killed === true
+
+          let detail: string
+          if (timedOut) {
+            detail = `${target} timed out after ${timeout / 1000}s`
+          } else if (failure.code === 'ENOENT') {
+            // "spawn claude ENOENT" tells you nothing about why.
+            detail =
+              `"${spec.command}" was not found on PATH.\n\n` +
+              `The terminal panes can work while this fails: they are launched with your ` +
+              `login shell's PATH, and a headless dispatch has to be given the same. If ` +
+              `${target} runs in a terminal but not here, restart Plexus so it re-reads PATH.`
+          } else {
+            detail = stderr.trim() || failure.message
+          }
+
           return reject(new DispatchError(detail, target, timedOut))
         }
         resolve(extractText(target, stdout))

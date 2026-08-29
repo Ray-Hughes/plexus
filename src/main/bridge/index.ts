@@ -60,6 +60,16 @@ export class Harness extends EventEmitter<HarnessEvents> {
   readonly paths: HarnessPaths
   dispatchConfig: DispatchConfig
 
+  /**
+   * Extra environment for every process the bridge spawns — in practice, PATH.
+   *
+   * A GUI app inherits a bare /usr/bin:/bin:/usr/sbin:/sbin, so a headless
+   * `claude` or `copilot` fails with ENOENT even while the terminal panes work
+   * fine, because those were already being given the resolved login-shell PATH.
+   * Anything that spawns a CLI has to go through here.
+   */
+  spawnEnv: NodeJS.ProcessEnv = {}
+
   constructor(root?: string) {
     super()
     this.paths = ensureHarness(harnessPaths(root))
@@ -234,7 +244,7 @@ export class Harness extends EventEmitter<HarnessEvents> {
         timeoutSeconds: opts.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS,
         cwd: this.paths.root,
         config: this.dispatchConfig,
-        env: { PLEXUS_PROJECT_DIR: this.paths.root, PLEXUS_AGENT: target }
+        env: { ...this.spawnEnv, PLEXUS_PROJECT_DIR: this.paths.root, PLEXUS_AGENT: target }
       })
       this.log(`DONE <- ${target}`)
       return out
