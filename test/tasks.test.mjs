@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { after, describe, it } from 'node:test'
 import { tempHarness } from './helpers.mjs'
 
@@ -91,5 +92,109 @@ describe('assignment semantics', () => {
   it('unassigning reopens the task', () => {
     const task = harness.createTask({ title: 't', description: 'd', created_by: 'claude', assignee: 'claude' })
     assert.equal(harness.assignTask(task.id, 'unassigned', 'claude').status, 'open')
+  })
+})
+
+describe('task detail: instructions, requirements, attachments', () => {
+  const { harness, cleanup } = tempHarness()
+  after(cleanup)
+
+  it('defaults the new fields on a fresh task', () => {
+    const task = harness.createTask({ title: 't', description: 'd', created_by: 'human' })
+    assert.equal(task.instructions, '')
+    assert.deepEqual(task.requirements, [])
+    assert.deepEqual(task.attachments, [])
+  })
+
+  it('accepts instructions and requirements at creation', () => {
+    const task = harness.createTask({
+      title: 'Fix the upload retry',
+      description: 'Retries are exhausted silently',
+      created_by: 'human',
+      instructions: 'Do not change the public signature of uploadArtifact.',
+      requirements: ['surfaces the failure to the caller', 'covered by a test']
+    })
+    assert.match(task.instructions, /public signature/)
+    assert.equal(task.requirements.length, 2)
+    assert.equal(task.requirements[0].done, false)
+    assert.match(task.requirements[0].id, /^req-[a-z0-9]{8}$/)
+    assert.equal(task.requirements[0].added_by, 'human')
+  })
+
+  it('adds, ticks, and removes a requirement', () => {
+    const task = harness.createTask({ title: 't', description: 'd', created_by: 'human' })
+    const added = harness.addRequirement(task.id, 'handles the empty case', 'claude')
+    const req = added.requirements[0]
+
+    const ticked = harness.setRequirementDone(task.id, req.id, true, 'claude')
+    assert.equal(ticked.requirements[0].done, true)
+    assert.match(ticked.notes.at(-1).text, /met requirement: handles the empty case/)
+
+    assert.equal(harness.setRequirementDone(task.id, req.id, false, 'claude').requirements[0].done, false)
+    assert.deepEqual(harness.removeRequirement(task.id, req.id).requirements, [])
+  })
+
+  it('reports an unknown requirement rather than silently doing nothing', () => {
+    const task = harness.createTask({ title: 't', description: 'd', created_by: 'human' })
+    assert.throws(() => harness.setRequirementDone(task.id, 'req-00000000', true, 'human'), /no such requirement/)
+  })
+
+  it('attaches files, links and notes, and removes them', () => {
+    const task = harness.createTask({ title: 't', description: 'd', created_by: 'human' })
+    harness.addAttachment(task.id, 'file', 'the pipeline', 'src/zip/pipeline.ts', 'human')
+    harness.addAttachment(task.id, 'link', 'the ticket', 'https://example.com/1', 'human')
+    const withNote = harness.addAttachment(task.id, 'note', 'repro', 'upload a 0-byte file', 'human')
+
+    assert.deepEqual(
+      withNote.attachments.map((a) => a.kind),
+      ['file', 'link', 'note']
+    )
+    assert.match(withNote.attachments[0].id, /^att-[a-z0-9]{8}$/)
+    assert.equal(harness.removeAttachment(task.id, withNote.attachments[1].id).attachments.length, 2)
+  })
+
+  it('renders a brief that carries everything an agent needs', () => {
+    const task = harness.createTask({
+      title: 'Fix the upload retry',
+      description: 'Retries are exhausted silently',
+      created_by: 'human',
+      instructions: 'Do not change the public signature.',
+      requirements: ['surfaces the failure', 'covered by a test']
+    })
+    harness.addAttachment(task.id, 'file', 'the pipeline', 'src/zip/pipeline.ts', 'human')
+    harness.setRequirementDone(task.id, harness.getTask(task.id).requirements[0].id, true, 'claude')
+
+    const brief = harness.brief(task.id)
+    assert.match(brief, /# Fix the upload retry/)
+    assert.match(brief, /Retries are exhausted silently/)
+    assert.match(brief, /## Instructions[\s\S]*public signature/)
+    assert.match(brief, /- \[x\] surfaces the failure/)
+    assert.match(brief, /- \[ \] covered by a test/)
+    assert.match(brief, /src\/zip\/pipeline\.ts.*read this file/)
+  })
+
+  it('omits empty sections from the brief', () => {
+    const task = harness.createTask({ title: 'bare', description: 'just this', created_by: 'human' })
+    const brief = harness.brief(task.id)
+    assert.doesNotMatch(brief, /## Instructions|## Requirements|## Attachments/)
+  })
+
+  it('fills in the new fields when reading a task written before they existed', () => {
+    const { harness: h, cleanup: c } = tempHarness()
+    const task = h.createTask({ title: 't', description: 'd', created_by: 'human' })
+    // Simulate a task file from an older build.
+    const path = `${h.paths.tasksDir}/${task.id}.json`
+    const legacy = JSON.parse(readFileSync(path, 'utf8'))
+    delete legacy.instructions
+    delete legacy.requirements
+    delete legacy.attachments
+    writeFileSync(path, JSON.stringify(legacy))
+
+    const read = h.getTask(task.id)
+    assert.equal(read.instructions, '')
+    assert.deepEqual(read.requirements, [])
+    assert.deepEqual(read.attachments, [])
+    assert.doesNotThrow(() => h.brief(task.id))
+    c()
   })
 })

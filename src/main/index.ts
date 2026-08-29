@@ -1,14 +1,15 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { existsSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join, relative } from 'node:path'
 import {
   CHANNELS,
+  type AppSettings,
   type HumanOutcome,
   type ProjectState,
   type Snapshot,
   type StartResult
 } from '../shared/ipc'
-import type { Assignee, Priority, TaskStatus } from '../shared/types'
+import type { Assignee, AttachmentKind, Priority, TaskStatus } from '../shared/types'
 import { isAgentId } from '../shared/types'
 import { Harness } from './bridge'
 import { resolveUserPath } from './env'
@@ -262,6 +263,58 @@ function registerIpc(): void {
       return harness.updateTask(taskId, { ...patch, by: 'human' })
     }
   )
+
+  const requireHarness = (): Harness => {
+    if (!harness) throw new Error('no project open')
+    return harness
+  }
+
+  ipcMain.handle(CHANNELS.setInstructions, (_e, id: string, instructions: string) =>
+    requireHarness().setInstructions(id, instructions, 'human')
+  )
+  ipcMain.handle(CHANNELS.addRequirement, (_e, id: string, text: string) =>
+    requireHarness().addRequirement(id, text, 'human')
+  )
+  ipcMain.handle(CHANNELS.setRequirementDone, (_e, id: string, reqId: string, done: boolean) =>
+    requireHarness().setRequirementDone(id, reqId, done, 'human')
+  )
+  ipcMain.handle(CHANNELS.removeRequirement, (_e, id: string, reqId: string) =>
+    requireHarness().removeRequirement(id, reqId)
+  )
+  ipcMain.handle(
+    CHANNELS.addAttachment,
+    (_e, id: string, kind: AttachmentKind, name: string, value: string) =>
+      requireHarness().addAttachment(id, kind, name, value, 'human')
+  )
+  ipcMain.handle(CHANNELS.removeAttachment, (_e, id: string, attId: string) =>
+    requireHarness().removeAttachment(id, attId)
+  )
+
+  ipcMain.handle(CHANNELS.pickAttachmentFiles, async () => {
+    const root = requireHarness().paths.root
+    const result = await dialog.showOpenDialog({
+      title: 'Attach files from the project',
+      defaultPath: root,
+      properties: ['openFile', 'multiSelections']
+    })
+    if (result.canceled) return []
+    return result.filePaths.map((absolute) => {
+      // Agents read these paths relative to the repo they're pointed at, so a
+      // file from outside it has to stay absolute or it would not resolve.
+      const rel = relative(root, absolute)
+      const inside = rel && !rel.startsWith('..') && !isAbsolute(rel)
+      return { name: (inside ? rel : absolute).split(/[\\/]/).pop() ?? 'file', value: inside ? rel : absolute }
+    })
+  })
+
+  ipcMain.handle(CHANNELS.getSettings, (): AppSettings => ({
+    autoStart: loadSettings().autoStart ?? DEFAULT_SETTINGS.autoStart
+  }))
+
+  ipcMain.handle(CHANNELS.setSettings, (_e, patch: Partial<AppSettings>): AppSettings => {
+    const next = saveSettings(patch)
+    return { autoStart: next.autoStart ?? DEFAULT_SETTINGS.autoStart }
+  })
 
   ipcMain.handle(
     CHANNELS.resolveTask,

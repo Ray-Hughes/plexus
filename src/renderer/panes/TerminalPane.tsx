@@ -38,9 +38,21 @@ interface Props {
   running: boolean
   error: string | null
   onStart: (cols: number, rows: number) => void
+  /**
+   * Distinguishes the side pane from the maximized one. Both can be mounted for
+   * the same agent at once; each keeps its own xterm instance and replays the
+   * process's buffer, so switching between them loses nothing.
+   */
+  instanceKey?: string
 }
 
-export default function TerminalPane({ id, running, error, onStart }: Props): JSX.Element {
+export default function TerminalPane({
+  id,
+  running,
+  error,
+  onStart,
+  instanceKey = 'main'
+}: Props): JSX.Element {
   const host = useRef<HTMLDivElement>(null)
   const term = useRef<Terminal | null>(null)
   const fit = useRef<FitAddon | null>(null)
@@ -99,7 +111,7 @@ export default function TerminalPane({ id, running, error, onStart }: Props): JS
       term.current = null
       fit.current = null
     }
-  }, [id, running])
+  }, [id, running, instanceKey])
 
   if (!running) {
     return (

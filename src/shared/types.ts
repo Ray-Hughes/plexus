@@ -25,6 +25,31 @@ export interface TaskNote {
   text: string
 }
 
+/** A checklist item the work has to satisfy. The reviewer is shown these explicitly. */
+export interface Requirement {
+  id: string
+  text: string
+  done: boolean
+  added_by: string
+  added_at: string
+}
+
+export type AttachmentKind = 'file' | 'link' | 'note'
+
+/**
+ * Context attached to a task. `file` is a repo-relative path the agent can read
+ * itself; `link` is a URL; `note` carries its content inline.
+ */
+export interface Attachment {
+  id: string
+  kind: AttachmentKind
+  name: string
+  /** Path, URL, or inline text depending on `kind`. */
+  value: string
+  added_by: string
+  added_at: string
+}
+
 export interface Review {
   verdict: Verdict
   notes: string
@@ -42,6 +67,12 @@ export interface Task {
   created_at: string
   updated_at: string
   notes: TaskNote[]
+  /** Long-form detail beyond the one-line description: constraints, background, how to verify. */
+  instructions: string
+  /** What the work must satisfy. Included verbatim in the reviewer's prompt. */
+  requirements: Requirement[]
+  /** Files, links, and notes the assignee should read first. */
+  attachments: Attachment[]
   /** The proposed result, set by `submit_proposal`. */
   result: string | null
   /** Keyed by reviewing agent. Cleared on each new proposal. */
@@ -100,6 +131,24 @@ export const DEFAULT_TIMEOUT_SECONDS = 300
 
 export function isAgentId(value: unknown): value is AgentId {
   return value === 'claude' || value === 'copilot'
+}
+
+/**
+ * Tasks written before instructions/requirements/attachments existed are missing
+ * those fields, and `.harness/` is deliberately long-lived state rather than a
+ * database with migrations — so every read fills them in.
+ */
+export function normalizeTask(task: Partial<Task> & { id: string }): Task {
+  return {
+    instructions: '',
+    requirements: [],
+    attachments: [],
+    notes: [],
+    reviews: {},
+    revision_rounds: 0,
+    result: null,
+    ...task
+  } as Task
 }
 
 export function emptyScore(): AgentScore {

@@ -46,20 +46,26 @@ machinery that makes them accountable to each other:
   starting work.
 - **They can hand each other bounded work.** One agent dispatches the other headlessly and
   gets the result back inside its own turn.
-- **Work is tracked, not fired and forgotten.** A real task board, with tasks assignable to
-  either agent, to you, or to nobody yet.
+- **Work is tracked, not fired and forgotten.** A real task board. Every task carries
+  detailed instructions, a requirements checklist, and attached files — so "go do a thing"
+  becomes something that can actually be reviewed.
 - **You talk to both in one room.** Type once, address it with `@claude`, `@copilot`, or
   `@both`, and their output lands back in the same place.
 - **Nothing is done until the other agent agrees.** An agent finishing work submits a
-  *proposal*, never a completion. The other agent is dispatched to review it. Approve
-  closes the task; `revise` sends it back with notes; `reject` escalates to you.
+  *proposal*, never a completion. The other agent is dispatched to review it — against the
+  task's requirements, one at a time. Approve closes the task; `revise` sends it back with
+  notes; `reject` escalates to you.
 - **There's a running record of how good that sign-off actually is.** Per-agent tallies of
   proposals, first-try approvals, revisions needed, and issues caught while reviewing.
 
+### A task is a brief, not a one-liner
+
+Instructions, a requirements checklist, and attached files travel with the work. The
+reviewing agent is shown the requirements verbatim and asked to go through them one at a
+time — which is what turns "looks fine to me" into a review.
+
 <div align="center">
-<img src="docs/images/tasks.png" alt="The shared task board" width="330">
-&nbsp;&nbsp;&nbsp;
-<img src="docs/images/scoreboard.png" alt="The consensus scoreboard" width="330">
+<img src="docs/images/task-detail.png" alt="A task with instructions, requirements and attachments" width="880">
 </div>
 
 ---
@@ -215,7 +221,11 @@ More in [docs/cli.md](docs/cli.md).
 | `get_job` | 2 | Poll an async dispatch. |
 | `get_activity` | 1 | Read the shared trace — what the other agent has been doing. |
 | `post_chat` / `get_chat` | 5 | Speak into, and read, the shared room. |
-| `create_task` | 4 | Open a task. `assignee: "self"` resolves to the calling agent. |
+| `create_task` | 4 | Open a task, optionally with instructions and a requirements checklist. `assignee: "self"` resolves to the calling agent. |
+| `get_brief` | 4 | The task as one document: description, instructions, requirements, attachments. **Read this before starting work.** |
+| `set_instructions` | 4 | Replace a task's long-form detail. |
+| `add_requirement` / `set_requirement_done` | 4 | Add or tick a checklist item. Requirements go verbatim into the reviewer's prompt. |
+| `add_attachment` | 4 | Attach a repo file, a link, or an inline note. |
 | `assign_task` | 4 | Hand a task to an agent or to the human. |
 | `update_task` | 4 | Change status or add a note. **Cannot set `done`.** |
 | `list_tasks` / `get_task` | 4 | Read the board. |

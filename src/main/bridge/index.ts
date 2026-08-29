@@ -5,6 +5,7 @@ import type {
   ActivityEntry,
   AgentId,
   Assignee,
+  AttachmentKind,
   ChatMessage,
   Job,
   Scoreboard,
@@ -24,7 +25,17 @@ import { claimNextJob, enqueueJob, finishJob, getJob, listJobs } from './jobs'
 import { log, readActivity } from './log'
 import { ensureHarness, harnessPaths, type HarnessPaths } from './paths'
 import { bumpScore, getScoreboard } from './scoreboard'
-import { addNote, createTask, getTask, listTasks, mutateTask, type CreateTaskInput } from './tasks'
+import {
+  addNote,
+  createTask,
+  getTask,
+  listTasks,
+  mutateTask,
+  newAttachment,
+  newRequirement,
+  renderBrief,
+  type CreateTaskInput
+} from './tasks'
 import { ensureFile, readJsonOr } from './store'
 
 export * from './paths'
@@ -120,6 +131,73 @@ export class Harness extends EventEmitter<HarnessEvents> {
       if (patch.note) addNote(t, patch.by, patch.note)
     })
     this.log(`TASK UPDATED ${id}: status=${task.status}`)
+    this.emit('task', task)
+    return task
+  }
+
+  /** The full brief — description, instructions, requirements, attachments. */
+  brief(id: string): string {
+    return renderBrief(this.getTask(id))
+  }
+
+  setInstructions(id: string, instructions: string, by: string): Task {
+    const task = mutateTask(this.paths, id, (t) => {
+      t.instructions = instructions
+      addNote(t, by, 'updated the instructions')
+    })
+    this.log(`TASK INSTRUCTIONS ${id} by ${by}`)
+    this.emit('task', task)
+    return task
+  }
+
+  addRequirement(id: string, text: string, by: string): Task {
+    const task = mutateTask(this.paths, id, (t) => {
+      t.requirements.push(newRequirement(text, by))
+    })
+    this.log(`TASK REQUIREMENT + ${id}: ${text.slice(0, 80)}`)
+    this.emit('task', task)
+    return task
+  }
+
+  setRequirementDone(id: string, requirementId: string, done: boolean, by: string): Task {
+    const task = mutateTask(this.paths, id, (t) => {
+      const requirement = t.requirements.find((r) => r.id === requirementId)
+      if (!requirement) throw new Error(`no such requirement: ${requirementId}`)
+      requirement.done = done
+      addNote(t, by, `${done ? 'met' : 'reopened'} requirement: ${requirement.text}`)
+    })
+    this.emit('task', task)
+    return task
+  }
+
+  removeRequirement(id: string, requirementId: string): Task {
+    const task = mutateTask(this.paths, id, (t) => {
+      t.requirements = t.requirements.filter((r) => r.id !== requirementId)
+    })
+    this.emit('task', task)
+    return task
+  }
+
+  addAttachment(
+    id: string,
+    kind: AttachmentKind,
+    name: string,
+    value: string,
+    by: string
+  ): Task {
+    const task = mutateTask(this.paths, id, (t) => {
+      t.attachments.push(newAttachment(kind, name, value, by))
+      addNote(t, by, `attached ${kind}: ${name}`)
+    })
+    this.log(`TASK ATTACHMENT + ${id}: ${kind} ${name}`)
+    this.emit('task', task)
+    return task
+  }
+
+  removeAttachment(id: string, attachmentId: string): Task {
+    const task = mutateTask(this.paths, id, (t) => {
+      t.attachments = t.attachments.filter((a) => a.id !== attachmentId)
+    })
     this.emit('task', task)
     return task
   }

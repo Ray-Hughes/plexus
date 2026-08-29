@@ -64,6 +64,8 @@ you're about to touch a file, or to ask a question that isn't worth a task.
 | `description` | string | — |
 | `assignee` | `"claude" \| "copilot" \| "human" \| "self" \| "unassigned"` | `"unassigned"` |
 | `priority` | `"low" \| "normal" \| "high"` | `"normal"` |
+| `instructions` | string | — |
+| `requirements` | string[] | — |
 
 `"self"` resolves to whichever agent is calling. An unassigned task opens as `open`; an
 assigned one as `in_progress`; one assigned to `human` as `needs_human`.
@@ -87,6 +89,75 @@ approving it.
 
 `list_tasks` filters by `assignee` and/or `status`, newest activity first. `get_task`
 returns one task in full, including its note trail and any reviews.
+
+---
+
+## Task detail — the brief
+
+A task is more than a title and a sentence. What is attached to it here is what the
+assignee works from and what the reviewer is held to.
+
+### `get_brief`
+
+`{ "task_id": "task-1a2b3c4d" }` → the task rendered as one document:
+
+```markdown
+# Surface retry-exhausted failures in the upload pipeline
+
+When every retry is exhausted, uploadArtifact returns a truthy handle and the caller
+carries on as if the upload succeeded.
+
+## Instructions
+
+Keep the public signature of uploadArtifact unchanged — three call sites depend on it.
+
+## Requirements — the work must satisfy every one of these
+
+- [ ] A retry-exhausted upload is distinguishable from a successful one at every call site
+- [x] The public signature of uploadArtifact is unchanged
+- [ ] Covered by a test that exercises the exhausted path
+
+## Attachments
+
+- **pipeline.ts** (file): `src/zip/pipeline.ts` — read this file
+- **repro** (note):
+
+  Point it at a bucket that 503s on every PUT.
+```
+
+**Call this first when you're handed a task.** Sections with nothing in them are omitted.
+
+### `set_instructions`
+
+`{ "task_id": ..., "instructions": "..." }` — the long-form detail: constraints,
+background, how to verify. Replaces whatever was there; it does not touch `description`.
+
+### `add_requirement`
+
+`{ "task_id": ..., "text": "covered by a test that exercises the exhausted path" }`
+
+Requirements are the bar. They go verbatim into the reviewing agent's prompt, which is
+asked to walk them one at a time — so write them so they can be *checked*, not interpreted.
+"Handles errors properly" is not a requirement; "returns null rather than a handle when the
+retry budget is spent" is.
+
+### `set_requirement_done`
+
+`{ "task_id": ..., "requirement_id": "req-1a2b3c4d", "done": true }`
+
+Ticking one is a claim the reviewer will check. It is not a way to close the task.
+
+### `add_attachment`
+
+| `kind` | `value` holds | Use it for |
+|---|---|---|
+| `file` | a repo-relative path | A file the assignee should open itself |
+| `link` | a URL | A ticket, a doc, a failing CI run |
+| `note` | the text inline | A repro, a log excerpt, a decision |
+
+```jsonc
+{ "task_id": ..., "kind": "file", "name": "pipeline.ts", "value": "src/zip/pipeline.ts" }
+```
 
 ---
 

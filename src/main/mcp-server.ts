@@ -143,17 +143,24 @@ server.registerTool(
       title: z.string().min(1),
       description: z.string().min(1),
       assignee: z.enum(['claude', 'copilot', 'human', 'self', 'unassigned']).default('unassigned'),
-      priority: z.enum(['low', 'normal', 'high']).default('normal')
+      priority: z.enum(['low', 'normal', 'high']).default('normal'),
+      instructions: z.string().optional().describe('Long-form detail: constraints, background, how to verify'),
+      requirements: z
+        .array(z.string().min(1))
+        .optional()
+        .describe('Checklist items the work must satisfy; shown verbatim to the reviewer')
     }
   },
-  async ({ title, description, assignee, priority }) =>
+  async ({ title, description, assignee, priority, instructions, requirements }) =>
     json(
       harness.createTask({
         title,
         description,
         created_by: AGENT,
         assignee: resolve(assignee),
-        priority
+        priority,
+        instructions,
+        requirements
       })
     )
 )
@@ -226,6 +233,98 @@ server.registerTool(
   async ({ task_id }) => {
     try {
       return json(harness.getTask(task_id))
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : String(err))
+    }
+  }
+)
+
+// --- Task detail: instructions, requirements, attachments ---
+
+server.registerTool(
+  'get_brief',
+  {
+    title: 'Read a task brief',
+    description:
+      "The task rendered as one document: description, instructions, requirements checklist, and attachments. Read this before starting work — it is what you will be reviewed against.",
+    inputSchema: { task_id: z.string() }
+  },
+  async ({ task_id }) => {
+    try {
+      return text(harness.brief(task_id))
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : String(err))
+    }
+  }
+)
+
+server.registerTool(
+  'set_instructions',
+  {
+    title: 'Set a task\'s detailed instructions',
+    description:
+      'Replace the long-form instructions on a task: constraints, background, how to verify. Does not touch the one-line description.',
+    inputSchema: { task_id: z.string(), instructions: z.string() }
+  },
+  async ({ task_id, instructions }) => {
+    try {
+      return json(harness.setInstructions(task_id, instructions, AGENT))
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : String(err))
+    }
+  }
+)
+
+server.registerTool(
+  'add_requirement',
+  {
+    title: 'Add a requirement',
+    description:
+      'Add a checklist item the work must satisfy. Requirements are shown verbatim to the reviewing agent, so state them so they can be checked rather than interpreted.',
+    inputSchema: { task_id: z.string(), text: z.string().min(1) }
+  },
+  async ({ task_id, text: requirement }) => {
+    try {
+      return json(harness.addRequirement(task_id, requirement, AGENT))
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : String(err))
+    }
+  }
+)
+
+server.registerTool(
+  'set_requirement_done',
+  {
+    title: 'Tick or untick a requirement',
+    description:
+      'Mark a requirement met or not met. Ticking one is a claim the reviewer will check, not a way to close the task.',
+    inputSchema: { task_id: z.string(), requirement_id: z.string(), done: z.boolean() }
+  },
+  async ({ task_id, requirement_id, done }) => {
+    try {
+      return json(harness.setRequirementDone(task_id, requirement_id, done, AGENT))
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : String(err))
+    }
+  }
+)
+
+server.registerTool(
+  'add_attachment',
+  {
+    title: 'Attach context to a task',
+    description:
+      'Attach a repo file the assignee should read ("file"), a URL ("link"), or inline text ("note").',
+    inputSchema: {
+      task_id: z.string(),
+      kind: z.enum(['file', 'link', 'note']),
+      name: z.string().min(1).describe('A short label'),
+      value: z.string().min(1).describe('Repo-relative path, URL, or the note text')
+    }
+  },
+  async ({ task_id, kind, name, value }) => {
+    try {
+      return json(harness.addAttachment(task_id, kind, name, value, AGENT))
     } catch (err) {
       return fail(err instanceof Error ? err.message : String(err))
     }

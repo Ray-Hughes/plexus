@@ -50,16 +50,21 @@ describe('MCP bridge over stdio', () => {
   it('advertises every tool the spec calls for', async () => {
     const names = (await claude.listTools()).tools.map((t) => t.name).sort()
     assert.deepEqual(names, [
+      'add_attachment',
+      'add_requirement',
       'assign_task',
       'create_task',
       'dispatch',
       'get_activity',
+      'get_brief',
       'get_chat',
       'get_job',
       'get_scoreboard',
       'get_task',
       'list_tasks',
       'post_chat',
+      'set_instructions',
+      'set_requirement_done',
       'submit_proposal',
       'submit_review',
       'update_task'

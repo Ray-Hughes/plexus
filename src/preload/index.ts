@@ -35,6 +35,22 @@ const api: PlexusApi = {
   resolveTask: (taskId, outcome, notes) =>
     ipcRenderer.invoke(CHANNELS.resolveTask, taskId, outcome, notes),
 
+  setInstructions: (taskId, instructions) =>
+    ipcRenderer.invoke(CHANNELS.setInstructions, taskId, instructions),
+  addRequirement: (taskId, text) => ipcRenderer.invoke(CHANNELS.addRequirement, taskId, text),
+  setRequirementDone: (taskId, requirementId, done) =>
+    ipcRenderer.invoke(CHANNELS.setRequirementDone, taskId, requirementId, done),
+  removeRequirement: (taskId, requirementId) =>
+    ipcRenderer.invoke(CHANNELS.removeRequirement, taskId, requirementId),
+  addAttachment: (taskId, kind, name, value) =>
+    ipcRenderer.invoke(CHANNELS.addAttachment, taskId, kind, name, value),
+  removeAttachment: (taskId, attachmentId) =>
+    ipcRenderer.invoke(CHANNELS.removeAttachment, taskId, attachmentId),
+  pickAttachmentFiles: () => ipcRenderer.invoke(CHANNELS.pickAttachmentFiles),
+
+  getSettings: () => ipcRenderer.invoke(CHANNELS.getSettings),
+  setSettings: (patch) => ipcRenderer.invoke(CHANNELS.setSettings, patch),
+
   onPtyData: (cb) => subscribe<[AgentId, string]>(CHANNELS.ptyData, cb),
   onPtyExit: (cb) => subscribe<[AgentId, number]>(CHANNELS.ptyExit, cb),
   onSnapshot: (cb) => subscribe<[Snapshot]>(CHANNELS.snapshot, cb)

@@ -64,7 +64,10 @@ export async function handleHumanMessage(harness: Harness, line: string): Promis
     tasks.push(task)
 
     try {
-      const result = await harness.dispatch('coordinator', target, route.body)
+      // Dispatch the brief rather than the bare line, so anything the human
+      // added to the task (instructions, requirements, attachments) travels
+      // with it. For a chat-created task that is just the message itself.
+      const result = await harness.dispatch('coordinator', target, harness.brief(task.id))
       harness.postChat(target, result)
       await harness.submitProposal(task.id, result, target)
     } catch (err) {

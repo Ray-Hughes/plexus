@@ -16,6 +16,14 @@ Open a task with `create_task` for anything more than a trivial edit, so the wor
 visible and ownable rather than invisible until it lands. Keep it current with
 `update_task`.
 
+If you were handed a task, call `get_brief` first. It gives you the description, the
+detailed instructions, the requirements checklist, and any files or notes attached to it —
+and the requirements are exactly what the reviewer will hold you to.
+
+When you hand work over, put the bar in `requirements` rather than in prose. A requirement
+that can be checked is worth more than a paragraph that has to be interpreted. Attach the
+files that matter with `add_attachment` so the other agent doesn't have to go find them.
+
 ## Finishing
 
 **You do not mark your own work done.** When you believe a task is complete, call

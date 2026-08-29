@@ -1,7 +1,16 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Assignee, Priority, Task, TaskStatus } from '../../shared/types'
+import type {
+  Attachment,
+  AttachmentKind,
+  Assignee,
+  Priority,
+  Requirement,
+  Task,
+  TaskStatus
+} from '../../shared/types'
+import { normalizeTask } from '../../shared/types'
 import type { HarnessPaths } from './paths'
 import { readJson, withLock, writeJson } from './store'
 
@@ -16,7 +25,7 @@ function taskPath(paths: HarnessPaths, id: string): string {
 export function getTask(paths: HarnessPaths, id: string): Task {
   const path = taskPath(paths, id)
   if (!existsSync(path)) throw new Error(`no such task: ${id}`)
-  return readJson<Task>(path)
+  return normalizeTask(readJson<Task>(path))
 }
 
 export function saveTask(paths: HarnessPaths, task: Task): Task {
@@ -43,6 +52,8 @@ export interface CreateTaskInput {
   created_by: string
   assignee?: Assignee
   priority?: Priority
+  instructions?: string
+  requirements?: string[]
 }
 
 export function createTask(paths: HarnessPaths, input: CreateTaskInput): Task {
@@ -60,12 +71,59 @@ export function createTask(paths: HarnessPaths, input: CreateTaskInput): Task {
     created_at: now,
     updated_at: now,
     notes: [],
+    instructions: input.instructions ?? '',
+    requirements: (input.requirements ?? []).map((text) => newRequirement(text, input.created_by)),
+    attachments: [],
     result: null,
     reviews: {},
     revision_rounds: 0
   }
   writeJson(taskPath(paths, id), task)
   return task
+}
+
+const shortId = (prefix: string): string =>
+  `${prefix}-${randomUUID().replace(/-/g, '').slice(0, 8)}`
+
+export function newRequirement(text: string, by: string): Requirement {
+  return { id: shortId('req'), text, done: false, added_by: by, added_at: new Date().toISOString() }
+}
+
+export function newAttachment(
+  kind: AttachmentKind,
+  name: string,
+  value: string,
+  by: string
+): Attachment {
+  return { id: shortId('att'), kind, name, value, added_by: by, added_at: new Date().toISOString() }
+}
+
+/**
+ * What the assignee and the reviewer both need to see. Kept in one place so a
+ * dispatch prompt and a review prompt can never drift out of sync about what
+ * the task actually asks for.
+ */
+export function renderBrief(task: Task): string {
+  const parts = [`# ${task.title}`, '', task.description]
+
+  if (task.instructions.trim()) {
+    parts.push('', '## Instructions', '', task.instructions.trim())
+  }
+
+  if (task.requirements.length) {
+    parts.push('', '## Requirements — the work must satisfy every one of these', '')
+    for (const r of task.requirements) parts.push(`- [${r.done ? 'x' : ' '}] ${r.text}`)
+  }
+
+  if (task.attachments.length) {
+    parts.push('', '## Attachments', '')
+    for (const a of task.attachments) {
+      if (a.kind === 'note') parts.push(`- **${a.name}** (note):`, '', `  ${a.value.replace(/\n/g, '\n  ')}`, '')
+      else parts.push(`- **${a.name}** (${a.kind}): \`${a.value}\`${a.kind === 'file' ? ' — read this file' : ''}`)
+    }
+  }
+
+  return parts.join('\n')
 }
 
 export function addNote(task: Task, by: string, text: string): void {
@@ -79,7 +137,7 @@ export function listTasks(
   if (!existsSync(paths.tasksDir)) return []
   return readdirSync(paths.tasksDir)
     .filter((f) => f.endsWith('.json'))
-    .map((f) => readJson<Task>(join(paths.tasksDir, f)))
+    .map((f) => normalizeTask(readJson<Task>(join(paths.tasksDir, f))))
     .filter((t) => !filter.assignee || t.assignee === filter.assignee)
     .filter((t) => !filter.status || t.status === filter.status)
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at))

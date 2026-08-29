@@ -228,3 +228,47 @@ describe('human resolution', () => {
     assert.match(last.text, /resolved "the disputed one".*accept: my call/)
   })
 })
+
+describe('the brief travels with the work', () => {
+  it('puts the requirements verbatim in the reviewer prompt', async () => {
+    const { harness, cleanup } = tempHarness()
+    after(cleanup)
+    let prompt = ''
+    harness.dispatch = async (_f, _t, p) => {
+      prompt = p
+      return 'ok'
+    }
+
+    const task = harness.createTask({
+      title: 'Fix the retry path',
+      description: 'Exhausted retries look like success',
+      created_by: 'human',
+      instructions: 'Keep the public signature unchanged.',
+      requirements: ['distinguishable at every call site', 'covered by a test']
+    })
+    harness.addAttachment(task.id, 'file', 'pipeline', 'src/zip/pipeline.ts', 'human')
+    await harness.submitProposal(task.id, 'I changed the return type', 'claude')
+
+    assert.match(prompt, /Keep the public signature unchanged/)
+    assert.match(prompt, /- \[ \] distinguishable at every call site/)
+    assert.match(prompt, /- \[ \] covered by a test/)
+    assert.match(prompt, /src\/zip\/pipeline\.ts/)
+    assert.match(prompt, /I changed the return type/)
+    assert.match(prompt, /requirements above one at a time/)
+  })
+
+  it('omits the requirement-by-requirement instruction when there are none', async () => {
+    const { harness, cleanup } = tempHarness()
+    after(cleanup)
+    let prompt = ''
+    harness.dispatch = async (_f, _t, p) => {
+      prompt = p
+      return 'ok'
+    }
+    const task = harness.createTask({ title: 't', description: 'd', created_by: 'human' })
+    await harness.submitProposal(task.id, 'r', 'claude')
+
+    assert.doesNotMatch(prompt, /requirements above one at a time/)
+    assert.match(prompt, /submit_review/)
+  })
+})

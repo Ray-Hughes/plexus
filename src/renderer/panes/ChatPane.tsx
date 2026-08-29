@@ -9,18 +9,45 @@ import type { ChatMessage } from '../../shared/types'
 const KNOWN = new Set(['claude', 'copilot', 'human', 'coordinator'])
 
 /**
+ * Task ids are the one thing in the room worth clicking: they're how a chat
+ * message connects back to the requirements and attachments behind it.
+ */
+function linkTasks(text: string, onOpenTask: (id: string) => void): React.ReactNode[] {
+  // split() with a capture group puts every capture at an odd index, so the
+  // index alone identifies a match — and a /g regex's .test() is stateful.
+  return text.split(TASK_ID).map((part, i) =>
+    i % 2 === 1 ? (
+      <button key={i} className="task-link" onClick={() => onOpenTask(part)}>
+        {part}
+      </button>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  )
+}
+
+/**
  * A review can run to several hundred words, and one of them unclamped pushes
  * every other message out of the room. Long messages collapse to a readable
  * height with a toggle.
  */
 const CLAMP_CHARS = 420
 
+const TASK_ID = /(task-[a-z0-9]{8})/g
+
 interface Props {
   messages: ChatMessage[]
   disabled: boolean
+  onOpenTask: (id: string) => void
 }
 
-function Message({ message }: { message: ChatMessage }): JSX.Element {
+function Message({
+  message,
+  onOpenTask
+}: {
+  message: ChatMessage
+  onOpenTask: (id: string) => void
+}): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const long = message.text.length > CLAMP_CHARS
   const shown = long && !expanded ? `${message.text.slice(0, CLAMP_CHARS).trimEnd()}…` : message.text
@@ -33,7 +60,7 @@ function Message({ message }: { message: ChatMessage }): JSX.Element {
         </span>
         <span className="msg-time">{message.at ? message.at.slice(11, 19) : ''}</span>
       </div>
-      <div className="msg-text">{shown}</div>
+      <div className="msg-text">{linkTasks(shown, onOpenTask)}</div>
       {long && (
         <button className="msg-more" onClick={() => setExpanded(!expanded)}>
           {expanded ? 'Show less' : `Show all ${message.text.length.toLocaleString()} characters`}
@@ -43,7 +70,7 @@ function Message({ message }: { message: ChatMessage }): JSX.Element {
   )
 }
 
-export default function ChatPane({ messages, disabled }: Props): JSX.Element {
+export default function ChatPane({ messages, disabled, onOpenTask }: Props): JSX.Element {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const bottom = useRef<HTMLDivElement>(null)
@@ -65,7 +92,7 @@ export default function ChatPane({ messages, disabled }: Props): JSX.Element {
   }
 
   return (
-    <div className="tab-body">
+    <div className="chat">
       <div className="chat-log">
         {messages.length === 0 && (
           <div className="empty">
@@ -74,12 +101,13 @@ export default function ChatPane({ messages, disabled }: Props): JSX.Element {
           </div>
         )}
         {messages.map((m, i) => (
-          <Message key={`${m.at}-${i}`} message={m} />
+          <Message key={`${m.at}-${i}`} message={m} onOpenTask={onOpenTask} />
         ))}
         <div ref={bottom} />
       </div>
 
       <div className="chat-input">
+        <div className="chat-input-inner">
         <textarea
           rows={3}
           value={draft}
@@ -102,6 +130,7 @@ export default function ChatPane({ messages, disabled }: Props): JSX.Element {
               routed to the other agent for review before it counts as done
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

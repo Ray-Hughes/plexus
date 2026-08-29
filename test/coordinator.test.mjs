@@ -92,3 +92,21 @@ describe('chat routing (Tier 5)', () => {
     assert.equal(result.tasks[0].description, long, 'the full text survives on the task')
   })
 })
+
+describe('chat dispatch carries the brief', () => {
+  it('dispatches the rendered brief, not just the raw line', async () => {
+    const { harness, cleanup } = tempHarness()
+    after(cleanup)
+    let dispatched = ''
+    harness.dispatch = async (_f, _t, task) => {
+      dispatched = task
+      return 'ok'
+    }
+    harness.submitProposal = async (id) => harness.getTask(id)
+
+    await handleHumanMessage(harness, '@claude check the retry path in the upload pipeline')
+
+    assert.match(dispatched, /^# check the retry path/, 'the brief leads with the title')
+    assert.match(dispatched, /check the retry path in the upload pipeline/)
+  })
+})

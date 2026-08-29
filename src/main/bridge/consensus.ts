@@ -4,7 +4,7 @@ import { postChat } from './chat'
 import { log } from './log'
 import type { HarnessPaths } from './paths'
 import { bumpScore } from './scoreboard'
-import { addNote, getTask, isTerminal, mutateTask } from './tasks'
+import { addNote, getTask, isTerminal, mutateTask, renderBrief } from './tasks'
 
 /**
  * Tier 6 — the immune system. Nothing reaches `done` on one agent's say-so.
@@ -16,22 +16,39 @@ export interface ConsensusDeps {
 }
 
 export function reviewPrompt(task: Task, proposer: AgentId): string {
-  return [
-    `Task ${task.id} ("${task.title}") was proposed by ${proposer}.`,
+  const lines = [
+    `Task ${task.id} was proposed by ${proposer}. You are reviewing it.`,
     '',
-    `Description: ${task.description}`,
+    renderBrief(task),
     '',
-    'Proposed result:',
+    '## Proposed result',
+    '',
     task.result ?? '(empty)',
-    '',
-    `Call get_task("${task.id}") if you need the full record, then evaluate this on its merits —`,
+    ''
+  ]
+
+  if (task.requirements.length) {
+    lines.push(
+      '## What to check',
+      '',
+      'Go through the requirements above one at a time and decide whether the proposal actually',
+      'satisfies each. Say which ones it meets and which it does not — a verdict with no',
+      'requirement-by-requirement reasoning is not a review.',
+      ''
+    )
+  }
+
+  lines.push(
+    `Call get_task("${task.id}") if you need the full record. Evaluate this on its merits —`,
     'correctness, completeness, whether it actually solves the task, not just whether it looks',
     'plausible. Do not approve work you have not actually checked.',
     '',
     `Then call submit_review with task_id="${task.id}", a verdict of "approve", "revise", or`,
     '"reject", and notes explaining your reasoning either way. Use "reject" only when the',
     'approach itself is wrong — that escalates to the human instead of another revision round.'
-  ].join('\n')
+  )
+
+  return lines.join('\n')
 }
 
 export async function submitProposal(

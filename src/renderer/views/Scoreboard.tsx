@@ -9,8 +9,11 @@ interface Props {
 
 export default function Scoreboard({ board, activity }: Props): JSX.Element {
   return (
-    <div className="tab-body">
-      <div className="scoreboard">
+    <div className="view">
+      <header className="view-head">
+        <h2>Scoreboard</h2>
+      </header>
+      <div className="view-body">
         <div className="score-grid">
           {(['claude', 'copilot'] as AgentId[]).map((agent) => (
             <Card key={agent} agent={agent} score={board[agent]} />
