@@ -71,6 +71,19 @@ Check what the app sees:
 $SHELL -ilc 'command -v claude copilot'
 ```
 
+## The app vanished after I opened it
+
+Not a crash — macOS deleted it. On macOS 15 and later, an unsigned app that still carries
+the download quarantine flag is killed on launch and removed from disk, without going to
+the Trash. Reinstall from the `.dmg` and clear the flag *before* the first launch:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Plexus.app
+```
+
+If it exits immediately with code 137 and is still on disk, that's the same thing caught
+one step earlier.
+
 ## macOS asks for keychain access
 
 The first time Copilot runs as a child of Plexus rather than of your terminal, macOS treats

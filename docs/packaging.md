@@ -39,8 +39,20 @@ node scripts/fix-native-permissions.mjs
 Builds are unsigned by default, which is fine for a personal tool and not fine for handing
 to anyone else.
 
-**macOS.** Unsigned `.dmg` files trip Gatekeeper: right-click → *Open* the first time. To
-sign properly you need an Apple Developer account and a *Developer ID Application*
+**macOS.** Unsigned builds are worse than a warning on macOS 15 and later. Launching a
+quarantined unsigned app gets it SIGKILLed *and removed from disk* — not moved to the
+Trash, deleted. The old right-click → *Open* escape hatch no longer applies. Until you
+sign, every user has to run:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Plexus.app
+```
+
+before the first launch. That is fine for your own machine and untenable for handing the
+app to anyone else, which makes signing the first thing to fix if this ever leaves your
+laptop.
+
+To sign properly you need an Apple Developer account and a *Developer ID Application*
 certificate in your keychain; `electron-builder` picks it up automatically. For
 distribution outside the App Store you also want notarization:
 

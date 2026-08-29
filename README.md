@@ -84,9 +84,21 @@ Download the installer for your platform from the
 | Windows | `Plexus-Setup-<version>-x64.exe` |
 | Linux | `Plexus-<version>.AppImage` |
 
-> **Builds are unsigned.** On macOS, right-click the app and choose *Open* the first time
-> to get past Gatekeeper. On Windows, click *More info → Run anyway* at the SmartScreen
-> prompt. See [docs/packaging.md](docs/packaging.md) for how to sign your own builds.
+> **Unsigned builds — clear the quarantine flag before the first launch.**
+>
+> These builds aren't code-signed. On macOS 15 and later, opening a quarantined unsigned app
+> doesn't just show a warning — Gatekeeper kills it and **deletes it**, without moving it to
+> the Trash. Right-click → *Open* no longer works around this.
+>
+> After dragging Plexus to Applications, run this once, before you open it:
+>
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/Plexus.app
+> ```
+>
+> On Windows, choose *More info → Run anyway* at the SmartScreen prompt.
+> See [docs/packaging.md](docs/packaging.md) for how to sign your own builds.
+
 
 ### Prerequisites
 
