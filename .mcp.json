@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "harness-bridge": {
+      "command": "node",
+      "args": ["dist/cli/harness-bridge.mjs", "--agent=claude"]
+    }
+  }
+}

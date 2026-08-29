@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "harness-bridge": {
+      "type": "local",
+      "command": "node",
+      "args": ["dist/cli/harness-bridge.mjs", "--agent=copilot"],
+      "tools": ["*"]
+    }
+  }
+}
